@@ -51,10 +51,11 @@ public class MaxBotSetupConfig {
 
     private void setupCommands() {
         maxBotApiClient.setCommands(List.of(
-                Map.of("name", "start", "description", "Запустить приложение JOIN"),
-                Map.of("name", "help", "description", "Помощь и информация")
+                Map.of("name", "start", "description", "Как работает JOIN и вход в приложение"),
+                Map.of("name", "pushkin", "description", "Ближайшие события по Пушкинской карте"),
+                Map.of("name", "help", "description", "Помощь")
         ));
-        log.info("MAX bot commands set: /start, /help");
+        log.info("MAX bot commands set: /start, /pushkin, /help");
     }
 
     private void setupWebhook() {

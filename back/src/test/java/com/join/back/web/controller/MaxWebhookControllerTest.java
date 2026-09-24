@@ -1,7 +1,9 @@
 package com.join.back.web.controller;
 
 import com.join.back.service.MaxBotApiClient;
+import com.join.back.model.entity.Event;
 import com.join.back.service.MaxBotInfoService;
+import com.join.back.service.PushkinPicksService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -14,6 +16,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +55,9 @@ class MaxWebhookControllerTest {
 
     @MockBean
     private MaxBotInfoService maxBotInfoService;
+
+    @MockBean
+    private PushkinPicksService pushkinPicksService;
 
     @BeforeEach
     void setUp() {
@@ -92,6 +99,31 @@ class MaxWebhookControllerTest {
                 .andExpect(status().isOk());
 
         verify(maxBotApiClient).sendMessageToChat(eq(99L), any(), isNull(), any());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void pushkinCommandListsEventsWithDeepLinkButtons() throws Exception {
+        Event event = Event.builder().id(42L).title("Щелкунчик").city("Москва")
+                .eventDate(LocalDate.of(2026, 12, 25)).eventTime(LocalTime.of(19, 0)).build();
+        when(pushkinPicksService.forMaxUser(7L)).thenReturn(new PushkinPicksService.Picks("Москва", List.of(event)));
+        String update = """
+                {"update_type":"message_created","timestamp":1,
+                 "message":{"sender":{"user_id":7},"recipient":{"chat_id":99,"chat_type":"dialog"},
+                            "body":{"mid":"m1","text":"/pushkin"}}}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
+        verify(maxBotApiClient).sendMessageToChat(eq(99L), text.capture(), eq("html"), keyboard.capture());
+        assertThat(text.getValue()).contains("Щелкунчик").contains("25 декабря, 19:00").contains("Москва");
+        assertThat(keyboard.getValue().get(0).get(0)).containsEntry("payload", "event_42");
+        assertThat(keyboard.getValue().get(1).get(0)).containsEntry("payload", "pushkin");
     }
 
     @Test

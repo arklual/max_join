@@ -1,10 +1,14 @@
 package com.join.back.web.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.join.back.model.entity.Event;
+import com.join.back.service.DeepLinks;
 import com.join.back.service.MaxBotApiClient;
 import com.join.back.service.MaxBotInfoService;
 import com.join.back.service.MaxLinkService;
 import com.join.back.service.MaxLoginService;
+import com.join.back.service.PushkinPicksService;
+import com.join.back.util.MessengerHtml;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +19,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.MessageDigest;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Обработчик MAX Webhook — принимает входящие обновления от MAX
- * (bot_started, message_created) и отвечает на старт бота, /start и /help.
+ * (bot_started, message_created) и отвечает на старт бота, /start, /pushkin и /help.
  */
 @RestController
 @RequestMapping("/api/max")
@@ -34,6 +42,7 @@ public class MaxWebhookController {
     private final MaxBotInfoService maxBotInfoService;
     private final MaxLinkService maxLinkService;
     private final MaxLoginService maxLoginService;
+    private final PushkinPicksService pushkinPicksService;
 
     @Value("${max.webhook-secret:}")
     private String webhookSecret;
@@ -63,6 +72,8 @@ public class MaxWebhookController {
                         handleStart(chatId, userId, text.substring("/start".length()).trim());
                     } else if (text.equals("/help")) {
                         sendHelpMessage(chatId);
+                    } else if (text.equals("/pushkin")) {
+                        sendPushkinPicks(chatId, userId);
                     }
                 }
                 default -> log.debug("MAX webhook: ignoring update_type={}", updateType);
@@ -136,21 +147,62 @@ public class MaxWebhookController {
 
     private void sendStartMessage(long chatId) {
         String welcomeText = """
-                👋 Привет! Добро пожаловать в JOIN!
+                👋 Привет! Это JOIN — здесь находят, с кем сходить на концерт, спектакль или выставку.
 
-                JOIN — это приложение для поиска мероприятий и знакомств. Здесь ты можешь находить интересные события, ставить лайки и общаться с людьми рядом.
+                Как это работает:
+                1. Открой афишу и лайкни события, на которые хочешь пойти.
+                2. Когда на то же событие захочет кто-то ещё, я пришлю тебе напарника.
+                3. Договоритесь в чате — а накануне я напомню о встрече.
 
-                ⚙️Как открыть приложение:
+                🎭 Тебе 14–22? Отмечаем события, которые можно оплатить Пушкинской картой.""";
 
-                1. Нажми кнопку «Присоединиться к JOIN» ниже
-                2. Или нажми кнопку «Открыть» мини-приложения в профиле бота
-
-                Удачных знакомств! 🎉""";
-
-        maxBotApiClient.sendMessageToChat(chatId, welcomeText, null, List.of(List.of(
-                MaxBotApiClient.openAppButton("🚀 Присоединиться к JOIN", maxBotInfoService.getUsername(), null)
-        )));
+        maxBotApiClient.sendMessageToChat(chatId, welcomeText, null, List.of(
+                List.of(MaxBotApiClient.openAppButton("🚀 Открыть афишу", maxBotInfoService.getUsername(), null)),
+                List.of(MaxBotApiClient.openAppButton("🎭 По Пушкинской карте", maxBotInfoService.getUsername(),
+                        DeepLinks.PUSHKIN))
+        ));
         log.info("Sent welcome message to chat {}", chatId);
+    }
+
+    private static final DateTimeFormatter PICK_DATE = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"));
+    private static final DateTimeFormatter PICK_TIME = DateTimeFormatter.ofPattern("HH:mm");
+
+    private void sendPushkinPicks(long chatId, long maxUserId) {
+        PushkinPicksService.Picks picks = pushkinPicksService.forMaxUser(maxUserId);
+        String bot = maxBotInfoService.getUsername();
+        if (picks.events().isEmpty()) {
+            maxBotApiClient.sendMessageToChat(chatId,
+                    "Пока нет ближайших событий по Пушкинской карте — загляни в афишу чуть позже.", null,
+                    List.of(List.of(MaxBotApiClient.openAppButton("🚀 Открыть афишу", bot, null))));
+            return;
+        }
+
+        StringBuilder text = new StringBuilder("🎭 <b>Ближайшие события по Пушкинской карте")
+                .append(picks.city() != null ? " — " + MessengerHtml.escape(picks.city()) : "")
+                .append("</b>\n");
+        List<List<Map<String, Object>>> keyboard = new ArrayList<>();
+        int n = 1;
+        for (Event event : picks.events()) {
+            text.append("\n").append(n).append(". ").append(MessengerHtml.escape(event.getTitle()))
+                    .append(" — ").append(event.getEventDate().format(PICK_DATE));
+            if (event.getEventTime() != null) {
+                text.append(", ").append(event.getEventTime().format(PICK_TIME));
+            }
+            if (picks.city() == null && event.getCity() != null) {
+                text.append(" (").append(MessengerHtml.escape(event.getCity())).append(")");
+            }
+            keyboard.add(List.of(MaxBotApiClient.openAppButton(n + ". " + shorten(event.getTitle(), 40), bot,
+                    DeepLinks.event(event.getId()))));
+            n++;
+        }
+        text.append("\n\nЛайкни событие в приложении — я найду, с кем на него сходить.");
+        keyboard.add(List.of(MaxBotApiClient.openAppButton("Все события по карте", bot, DeepLinks.PUSHKIN)));
+        maxBotApiClient.sendMessageToChat(chatId, text.toString(), "html", keyboard);
+    }
+
+    private static String shorten(String text, int max) {
+        if (text == null) return "";
+        return text.length() <= max ? text : text.substring(0, max - 1) + "…";
     }
 
     private void sendFriendGroupInviteMessage(long chatId, String inviteCode) {
@@ -168,22 +220,17 @@ public class MaxWebhookController {
 
     private void sendHelpMessage(long chatId) {
         String helpText = """
-                ℹ️ **JOIN — Помощь**
+                ℹ️ <b>JOIN — помощь</b>
 
-                JOIN — приложение для поиска мероприятий и знакомств.
+                /start — как работает JOIN и кнопка входа
+                /pushkin — ближайшие события по Пушкинской карте
 
-                **Как открыть приложение:**
-                • Нажми кнопку **«Открыть»** мини-приложения в профиле бота
-                • Или отправь /start и нажми кнопку **«Присоединиться к JOIN»**
+                Сюда же приходят уведомления: найден напарник, новые сообщения и напоминание накануне события. \
+                Кнопка в уведомлении сразу открывает нужный чат.
 
-                **Что можно делать в приложении:**
-                • 🔍 Искать мероприятия в своём городе
-                • ❤️ Ставить лайки и находить пары
-                • 💬 Общаться в чатах
-                • 👥 Вступать в группы по интересам
+                Вопрос или проблема — напиши в поддержку в профиле приложения.""";
 
-                По вопросам и предложениям — пиши в поддержку внутри приложения.""";
-
-        maxBotApiClient.sendMessageToChat(chatId, helpText, "markdown", null);
+        maxBotApiClient.sendMessageToChat(chatId, helpText, "html", List.of(List.of(
+                MaxBotApiClient.openAppButton("🚀 Открыть JOIN", maxBotInfoService.getUsername(), null))));
     }
 }
