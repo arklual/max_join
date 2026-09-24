@@ -29,7 +29,7 @@ services:
       certs:
         condition: service_completed_successfully
       back:
-        condition: service_started
+        condition: service_healthy
       front:
         condition: service_started
     restart: unless-stopped
@@ -78,6 +78,13 @@ services:
       JWT_TTL_DAYS: ${JWT_TTL_DAYS:-30}
     volumes:
       - uploads_data:/app/uploads
+    healthcheck:
+      # The JRE image has no curl; bash talks to the port directly.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /api/health HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q 'HTTP/1.[01] 200' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     depends_on:
       postgres:
         condition: service_healthy

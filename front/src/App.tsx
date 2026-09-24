@@ -6,6 +6,7 @@ import LoginScreen from './pages/LoginScreen';
 import NativeBridge from './components/NativeBridge';
 import MaxBackButton from './components/MaxBackButton';
 import { LikeFeedbackHost } from './components/LikeFeedback';
+import ErrorBoundary from './components/ErrorBoundary';
 import AfishaScreen from './pages/AfishaScreen';
 import LikesScreen from './pages/LikesScreen';
 import ChatsListScreen from './pages/ChatsListScreen';
@@ -26,6 +27,7 @@ import './index.css';
 export default function App() {
   return (
     <M3>
+      <ErrorBoundary>
       <BrowserRouter>
         <NativeBridge />
         <MaxBackButton />
@@ -54,6 +56,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </ErrorBoundary>
     </M3>
   );
 }
