@@ -26,11 +26,19 @@ public class PushkinPicksService {
     public record Picks(String city, List<Event> events) {
     }
 
-    /** Events in the user's city first; if there are none (or the user is unknown), across all cities. */
     @Transactional(readOnly = true, transactionManager = "transactionManager")
     public Picks forMaxUser(long maxUserId) {
+        return forCity(userRepository.findByMaxId(maxUserId).map(User::getCity).orElse(null));
+    }
+
+    @Transactional(readOnly = true, transactionManager = "transactionManager")
+    public Picks forTelegramUser(long telegramUserId) {
+        return forCity(userRepository.findByTelegramId(telegramUserId).map(User::getCity).orElse(null));
+    }
+
+    /** Events in the user's city first; if there are none (or the user is unknown), across all cities. */
+    private Picks forCity(String city) {
         LocalDate today = LocalDate.now(ZONE);
-        String city = userRepository.findByMaxId(maxUserId).map(User::getCity).orElse(null);
         if (city != null && !city.isBlank()) {
             List<Event> inCity = eventRepository
                     .findTop5ByPushkinCardTrueAndHiddenFalseAndStatusAndCityAndEventDateGreaterThanEqualOrderByEventDateAscEventTimeAsc(

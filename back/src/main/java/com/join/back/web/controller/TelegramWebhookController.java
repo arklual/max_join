@@ -1,7 +1,11 @@
 package com.join.back.web.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.join.back.model.entity.Event;
+import com.join.back.service.DeepLinks;
+import com.join.back.service.PushkinPicksService;
 import com.join.back.service.TelegramBotApiClient;
+import com.join.back.util.MessengerHtml;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +32,7 @@ public class TelegramWebhookController {
     private static final String INVITE_PREFIX = "join_";
 
     private final TelegramBotApiClient telegramBotApiClient;
+    private final PushkinPicksService pushkinPicksService;
 
     @Value("${telegram.webapp-url:}")
     private String webappUrl;
@@ -47,11 +52,14 @@ public class TelegramWebhookController {
             JsonNode message = update.path("message");
             if (!message.isMissingNode()) {
                 long chatId = message.path("chat").path("id").asLong();
+                long userId = message.path("from").path("id").asLong();
                 String text = message.path("text").asText("").trim();
                 if (text.equals("/start") || text.startsWith("/start ")) {
                     handleStart(chatId, text.substring("/start".length()).trim());
                 } else if (text.equals("/help")) {
                     sendHelpMessage(chatId);
+                } else if (text.equals("/pushkin")) {
+                    sendPushkinPicks(chatId, userId);
                 }
             }
         } catch (Exception e) {
@@ -79,18 +87,60 @@ public class TelegramWebhookController {
 
     private void sendStartMessage(long chatId) {
         String text = """
-                👋 Привет! Добро пожаловать в JOIN!
+                👋 Привет! Это JOIN — здесь находят, с кем сходить на концерт, спектакль или выставку.
 
-                JOIN — это приложение для поиска мероприятий и знакомств. Здесь ты можешь находить интересные события, ставить лайки и общаться с людьми рядом.
+                Как это работает:
+                1. Открой афишу и лайкни события, на которые хочешь пойти.
+                2. Когда на то же событие захочет кто-то ещё, я пришлю тебе напарника.
+                3. Договоритесь в чате — а накануне я напомню о встрече.
 
-                ⚙️Как открыть приложение:
-
-                1. Нажми кнопку «Присоединиться к JOIN» ниже
-                2. Или нажми кнопку «Открыть JOIN» в меню бота (слева от поля ввода)
-
-                Удачных знакомств! 🎉""";
-        telegramBotApiClient.sendMessage(chatId, text, null, keyboard("🚀 Присоединиться к JOIN", webappUrl));
+                🎭 Тебе 14–22? Отмечаем события, которые можно оплатить Пушкинской картой.""";
+        List<List<java.util.Map<String, Object>>> keyboard = webappUrl == null || webappUrl.isBlank() ? null : List.of(
+                List.of(TelegramBotApiClient.webAppButton("🚀 Открыть афишу", webappUrl)),
+                List.of(TelegramBotApiClient.webAppButton("🎭 По Пушкинской карте", deepLink(DeepLinks.PUSHKIN))));
+        telegramBotApiClient.sendMessage(chatId, text, null, keyboard);
         log.info("Sent Telegram welcome to chat {}", chatId);
+    }
+
+    private void sendPushkinPicks(long chatId, long telegramUserId) {
+        PushkinPicksService.Picks picks = pushkinPicksService.forTelegramUser(telegramUserId);
+        if (picks.events().isEmpty()) {
+            telegramBotApiClient.sendMessage(chatId,
+                    "Пока нет ближайших событий по Пушкинской карте — загляни в афишу чуть позже.", null,
+                    keyboard("🚀 Открыть афишу", webappUrl));
+            return;
+        }
+        StringBuilder text = new StringBuilder("🎭 <b>Ближайшие события по Пушкинской карте")
+                .append(picks.city() != null ? " — " + MessengerHtml.escape(picks.city()) : "")
+                .append("</b>\n");
+        List<List<java.util.Map<String, Object>>> keyboard = new java.util.ArrayList<>();
+        int n = 1;
+        for (Event event : picks.events()) {
+            text.append("\n").append(n).append(". ").append(MessengerHtml.escape(event.getTitle()))
+                    .append(" — ").append(event.getEventDate().format(PICK_DATE));
+            if (event.getEventTime() != null) {
+                text.append(", ").append(event.getEventTime().format(PICK_TIME));
+            }
+            if (picks.city() == null && event.getCity() != null) {
+                text.append(" (").append(MessengerHtml.escape(event.getCity())).append(")");
+            }
+            String title = event.getTitle().length() > 40 ? event.getTitle().substring(0, 39) + "…" : event.getTitle();
+            keyboard.add(List.of(TelegramBotApiClient.webAppButton(n + ". " + title, deepLink(DeepLinks.event(event.getId())))));
+            n++;
+        }
+        text.append("\n\nЛайкни событие в приложении — я найду, с кем на него сходить.");
+        keyboard.add(List.of(TelegramBotApiClient.webAppButton("Все события по карте", deepLink(DeepLinks.PUSHKIN))));
+        telegramBotApiClient.sendMessage(chatId, text.toString(), "HTML", keyboard);
+    }
+
+    private static final java.time.format.DateTimeFormatter PICK_DATE =
+            java.time.format.DateTimeFormatter.ofPattern("d MMMM", java.util.Locale.forLanguageTag("ru"));
+    private static final java.time.format.DateTimeFormatter PICK_TIME = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+
+    /** The mini app reads {@code ?startapp=} the same way as MAX start_param. */
+    private String deepLink(String payload) {
+        String base = webappUrl.endsWith("/") ? webappUrl : webappUrl + "/";
+        return base + "?startapp=" + payload;
     }
 
     private void sendInvite(long chatId, String code) {
@@ -103,22 +153,16 @@ public class TelegramWebhookController {
 
     private void sendHelpMessage(long chatId) {
         String text = """
-                ℹ️ <b>JOIN — Помощь</b>
+                ℹ️ <b>JOIN — помощь</b>
 
-                JOIN — приложение для поиска мероприятий и знакомств.
+                /start — как работает JOIN и кнопка входа
+                /pushkin — ближайшие события по Пушкинской карте
 
-                <b>Как открыть приложение:</b>
-                • Нажми кнопку <b>«Открыть JOIN»</b> в меню бота (слева от поля ввода)
-                • Или отправь /start и нажми <b>«Присоединиться к JOIN»</b>
+                Сюда же приходят уведомления: найден напарник, новые сообщения и напоминание накануне события. \
+                Кнопка в уведомлении сразу открывает нужный чат.
 
-                <b>Что можно делать в приложении:</b>
-                • 🔍 Искать мероприятия в своём городе
-                • ❤️ Ставить лайки и находить пары
-                • 💬 Общаться в чатах
-                • 👥 Вступать в группы по интересам
-
-                По вопросам и предложениям — пиши в поддержку внутри приложения.""";
-        telegramBotApiClient.sendMessage(chatId, text, "HTML", null);
+                Вопрос или проблема — напиши в поддержку в профиле приложения.""";
+        telegramBotApiClient.sendMessage(chatId, text, "HTML", keyboard("🚀 Открыть JOIN", webappUrl));
     }
 
     private List<List<java.util.Map<String, Object>>> keyboard(String label, String url) {

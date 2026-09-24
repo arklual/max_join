@@ -38,6 +38,9 @@ class TelegramWebhookControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
+    private com.join.back.service.PushkinPicksService pushkinPicksService;
+
+    @MockBean
     private TelegramBotApiClient telegramBotApiClient;
 
     @Test
