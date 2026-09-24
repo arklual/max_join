@@ -19,39 +19,56 @@ public class TelegramNotificationService {
     @Value("${telegram.webapp-url:}")
     private String webappUrl;
 
-    public void sendMatchNotification(Long telegramId, String companionName, String eventTitle) {
+    public void sendMatchNotification(Long telegramId, String companionName, String eventTitle, Long chatId) {
         send(telegramId, String.format("""
                 🎉 Напарник найден!
 
-                Тебе подобрали напарника на мероприятие «%s»!
-                Твой напарник — <b>%s</b>
+                На «%s» с тобой хочет пойти <b>%s</b>.
 
-                Заходи в чат в приложении, чтобы узнать подробности и начать общение 👇""",
-                esc(eventTitle), esc(companionName)));
+                Напиши первым — договоритесь, когда и где встретиться 👇""",
+                esc(eventTitle), esc(companionName)), "💬 Написать", DeepLinks.chat(chatId));
     }
 
-    public void sendChatMessageNotification(Long telegramId, String senderName, String messageText) {
+    public void sendChatMessageNotification(Long telegramId, String senderName, String messageText, Long chatId) {
         send(telegramId, String.format("💬 Новое сообщение от <b>%s</b>\n\n%s",
-                esc(senderName != null ? senderName : "Пользователь"), esc(preview(messageText))));
+                esc(senderName != null ? senderName : "собеседника"), esc(preview(messageText))),
+                "💬 Ответить", DeepLinks.chat(chatId));
     }
 
-    public void sendGroupMessageNotification(Long telegramId, String senderName, String groupEventTitle, String messageText) {
+    public void sendGroupMessageNotification(Long telegramId, String senderName, String groupEventTitle,
+                                             String messageText, Long groupChatId) {
         send(telegramId, String.format("👥 Новое сообщение в группе «%s»\n\n<b>%s</b>: %s",
                 esc(groupEventTitle != null ? groupEventTitle : "Группа"),
-                esc(senderName != null ? senderName : "Пользователь"), esc(preview(messageText))));
+                esc(senderName != null ? senderName : "Участник"), esc(preview(messageText))),
+                "👥 Открыть чат группы", DeepLinks.groupChat(groupChatId));
     }
 
-    private void send(Long telegramId, String text) {
+    public void sendEventReminder(Long telegramId, String companionName, String eventTitle, String when, Long chatId) {
+        send(telegramId, String.format("""
+                ⏰ Уже %s — «%s»
+
+                Ты идёшь вместе с <b>%s</b>. Договоритесь, где встретиться 👇""",
+                esc(when), esc(eventTitle), esc(companionName)), "💬 Написать", DeepLinks.chat(chatId));
+    }
+
+    private void send(Long telegramId, String text, String buttonText, String payload) {
         if (telegramId == null || !telegramBotApiClient.isConfigured()) return;
         try {
             List<List<java.util.Map<String, Object>>> keyboard = webappUrl == null || webappUrl.isBlank()
                     ? null
-                    : List.of(List.of(TelegramBotApiClient.webAppButton("💬 Открыть JOIN", webappUrl)));
+                    : List.of(List.of(TelegramBotApiClient.webAppButton(buttonText, deepLinkUrl(payload))));
             telegramBotApiClient.sendMessage(telegramId, text, "HTML", keyboard);
             log.info("Sent notification to Telegram user {}", telegramId);
         } catch (Exception e) {
             log.error("Failed to send notification to Telegram user {}: {}", telegramId, e.getMessage());
         }
+    }
+
+    /** The mini app reads {@code ?startapp=} the same way as MAX start_param. */
+    private String deepLinkUrl(String payload) {
+        if (payload == null) return webappUrl;
+        String base = webappUrl.endsWith("/") ? webappUrl : webappUrl + "/";
+        return base + "?startapp=" + payload;
     }
 
     private static String preview(String text) {

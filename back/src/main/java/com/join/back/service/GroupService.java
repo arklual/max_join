@@ -63,7 +63,7 @@ public class GroupService {
         boolean alreadyInGroup = groupGatheringRepository
                 .existsActiveGroupMemberByEventIdAndUserId(eventId, userId);
         if (alreadyInGroup) {
-            throw new IllegalStateException("User is already in a group for this event");
+            throw new UserActionException("Ты уже в компании на это событие");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -104,23 +104,23 @@ public class GroupService {
                 .orElseThrow(() -> new EntityNotFoundException("Group not found with id: " + groupId));
 
         if (group.getStatus() != GroupStatus.OPEN) {
-            throw new IllegalStateException("Group is not open for joining");
+            throw new UserActionException("Набор в эту компанию закрыт");
         }
 
         if (group.getCreatorId().equals(userId)) {
-            throw new IllegalStateException("Cannot join your own group — you are already a member");
+            throw new UserActionException("Ты уже состоишь в этой компании");
         }
 
         boolean alreadyMember = groupMemberRepository
                 .existsByGroupIdAndUserIdAndStatus(groupId, userId, GroupMemberStatus.ACTIVE);
         if (alreadyMember) {
-            throw new IllegalStateException("User is already a member of this group");
+            throw new UserActionException("Ты уже состоишь в этой компании");
         }
 
         boolean alreadyInEventGroup = groupGatheringRepository
                 .existsActiveGroupMemberByEventIdAndUserId(group.getEventId(), userId);
         if (alreadyInEventGroup) {
-            throw new IllegalStateException("User is already in a group for this event");
+            throw new UserActionException("Ты уже в компании на это событие");
         }
 
         LocalDateTime now = LocalDateTime.now();
@@ -345,7 +345,8 @@ public class GroupService {
                         memberUser,
                         senderName,
                         eventTitle,
-                        text
+                        text,
+                        groupChatId
                 );
             }
         } catch (Exception e) {

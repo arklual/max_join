@@ -1,11 +1,11 @@
 package com.join.back.service;
 
 import com.join.back.model.dto.MatchResponse;
+import com.join.back.model.entity.Chat;
 import com.join.back.model.entity.Event;
 import com.join.back.model.entity.EventLike;
 import com.join.back.model.entity.Match;
 import com.join.back.model.entity.User;
-import com.join.back.model.entity.Chat;
 import com.join.back.repository.ChatMessageRepository;
 import com.join.back.repository.ChatRepository;
 import com.join.back.repository.EventLikeRepository;
@@ -47,7 +47,7 @@ public class MatchService {
         }
 
         Event event = eventRepository.findById(eventId).orElse(null);
-        String eventTitle = event != null ? event.getTitle() : "Unknown event";
+        String eventTitle = event != null ? event.getTitle() : "мероприятие";
 
         List<Long> otherUserIds = allLikes.stream()
                 .map(EventLike::getUserId)
@@ -81,18 +81,19 @@ public class MatchService {
             Match savedMatch = matchRepository.save(match);
             newMatches.add(savedMatch);
 
-            chatService.createChat(savedMatch.getId(), savedMatch.getUser1Id(), savedMatch.getUser2Id(), eventId);
+            Chat chat = chatService.createChat(savedMatch.getId(), savedMatch.getUser1Id(), savedMatch.getUser2Id(), eventId);
+            Long chatId = chat != null ? chat.getId() : null;
 
             // Notify both users about the new match
-            String currentUserName = currentUser.getFirstName() != null ? currentUser.getFirstName() : "Someone";
-            String otherUserName = otherUser.getFirstName() != null ? otherUser.getFirstName() : "Someone";
+            String currentUserName = currentUser.getFirstName() != null ? currentUser.getFirstName() : "Собеседник";
+            String otherUserName = otherUser.getFirstName() != null ? otherUser.getFirstName() : "Собеседник";
 
             notificationService.createMatchNotification(userId, savedMatch.getId(), otherUserName, eventTitle);
             notificationService.createMatchNotification(otherUser.getId(), savedMatch.getId(), currentUserName, eventTitle);
 
             // Уведомления от бота в мессенджеры пользователей (MAX / Telegram)
-            messengerNotificationService.sendMatchNotification(currentUser, otherUserName, eventTitle);
-            messengerNotificationService.sendMatchNotification(otherUser, currentUserName, eventTitle);
+            messengerNotificationService.sendMatchNotification(currentUser, otherUserName, eventTitle, chatId);
+            messengerNotificationService.sendMatchNotification(otherUser, currentUserName, eventTitle, chatId);
         }
 
         return newMatches;

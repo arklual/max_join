@@ -17,4 +17,6 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
     List<Chat> findByMatchIdIn(List<Long> matchIds);
 
     java.util.Optional<Chat> findByMatchId(Long matchId);
+
+    List<Chat> findByEventIdIn(java.util.Collection<Long> eventIds);
 }

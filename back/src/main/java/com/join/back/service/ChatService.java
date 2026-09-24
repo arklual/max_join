@@ -168,7 +168,8 @@ public class ChatService {
             messengerNotificationService.sendChatMessageNotification(
                     recipient,
                     sender != null ? sender.getFirstName() : null,
-                    text
+                    text,
+                    chat.getId()
             );
         } catch (Exception e) {
             // Don't fail the message send if notification fails
