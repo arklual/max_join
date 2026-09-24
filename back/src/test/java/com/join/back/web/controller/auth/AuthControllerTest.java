@@ -38,6 +38,7 @@ class AuthControllerTest {
     @MockBean private AuthService authService;
     @MockBean private UserRepository userRepository;
     @MockBean private com.join.back.service.MaxLinkService maxLinkService;
+    @MockBean private com.join.back.security.LoginAttemptService loginAttemptService;
 
     private UserResponse anyUser() {
         return new UserResponse(

@@ -17,6 +17,7 @@ public class AuthException extends RuntimeException {
 
     public static AuthException emailInvalid()      { return new AuthException(HttpStatus.BAD_REQUEST, "EMAIL_INVALID",      "Некорректный email"); }
     public static AuthException passwordTooShort()  { return new AuthException(HttpStatus.BAD_REQUEST, "PASSWORD_TOO_SHORT", "Пароль должен быть не короче 8 символов"); }
+    public static AuthException tooManyAttempts()   { return new AuthException(HttpStatus.TOO_MANY_REQUESTS, "TOO_MANY_ATTEMPTS", "Слишком много попыток входа. Попробуйте через 15 минут"); }
     public static AuthException badCredentials()    { return new AuthException(HttpStatus.UNAUTHORIZED, "BAD_CREDENTIALS",   "Неверный email или пароль"); }
     public static AuthException emailTaken()        { return new AuthException(HttpStatus.CONFLICT,     "EMAIL_TAKEN",       "Email уже используется"); }
     public static AuthException alreadyLinked()     { return new AuthException(HttpStatus.CONFLICT,     "ALREADY_LINKED",    "К этому аккаунту уже привязан email"); }

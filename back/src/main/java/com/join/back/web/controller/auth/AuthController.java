@@ -8,6 +8,9 @@ import com.join.back.model.dto.auth.RegisterRequest;
 import com.join.back.repository.UserRepository;
 import com.join.back.service.AuthService;
 import com.join.back.web.controller.BaseAuthController;
+import com.join.back.security.AuthException;
+import com.join.back.security.LoginAttemptService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,11 +27,14 @@ public class AuthController extends BaseAuthController {
 
     private final AuthService authService;
     private final MaxLinkService maxLinkService;
+    private final LoginAttemptService loginAttemptService;
 
-    public AuthController(UserRepository userRepository, AuthService authService, MaxLinkService maxLinkService) {
+    public AuthController(UserRepository userRepository, AuthService authService, MaxLinkService maxLinkService,
+                          LoginAttemptService loginAttemptService) {
         super(userRepository);
         this.authService = authService;
         this.maxLinkService = maxLinkService;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @PostMapping("/register")
@@ -37,8 +43,28 @@ public class AuthController extends BaseAuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
+        String ip = clientIp(http);
+        if (loginAttemptService.isBlocked(request.email(), ip)) {
+            throw AuthException.tooManyAttempts();
+        }
+        try {
+            AuthResponse response = authService.login(request);
+            loginAttemptService.recordSuccess(request.email(), ip);
+            return response;
+        } catch (AuthException e) {
+            loginAttemptService.recordFailure(request.email(), ip);
+            throw e;
+        }
+    }
+
+    /** nginx passes the real client address in X-Forwarded-For. */
+    private static String clientIp(HttpServletRequest http) {
+        String forwarded = http.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return http.getRemoteAddr();
     }
 
     @PostMapping("/link-email")
