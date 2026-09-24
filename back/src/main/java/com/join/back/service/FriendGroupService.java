@@ -144,7 +144,7 @@ public class FriendGroupService {
         long activeCount = friendGroupMemberRepository
                 .countByFriendGroupIdAndStatus(locked.getId(), FriendGroupMemberStatus.ACTIVE);
         if (activeCount >= locked.getMaxSize()) {
-            throw new IllegalStateException("Friend group is full");
+            throw new UserActionException("В группе больше нет мест");
         }
 
         Optional<FriendGroupMember> existing = friendGroupMemberRepository
@@ -155,7 +155,7 @@ public class FriendGroupService {
         if (existing.isPresent()) {
             FriendGroupMember member = existing.get();
             if (member.getStatus() == FriendGroupMemberStatus.ACTIVE) {
-                throw new IllegalStateException("User is already a member of this group");
+                throw new UserActionException("Ты уже состоишь в этой группе");
             }
             member.setStatus(FriendGroupMemberStatus.ACTIVE);
             member.setJoinedAt(now);

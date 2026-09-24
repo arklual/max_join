@@ -23,6 +23,7 @@ import { getTagChipSx } from './tagChipStyles';
 import { formatEventDateTime } from '../utils/dateUtils';
 import { formatPrice } from '../utils/format';
 import { PushkinCardChip } from './PushkinCardInfo';
+import { reportLikeResult, type LikeResult } from './LikeFeedback';
 
 interface EventCardProps {
   event: EventCardType;
@@ -72,7 +73,8 @@ export default function EventCard({ event, onLikeToggle }: EventCardProps) {
 
     try {
       if (newLiked) {
-        await apiClient.post(`/events/${event.id}/like`);
+        const res = await apiClient.post<LikeResult | ''>(`/events/${event.id}/like`);
+        reportLikeResult(event.title, res.data || null);
       } else {
         await apiClient.delete(`/events/${event.id}/like`);
       }

@@ -1,6 +1,7 @@
 package com.join.back.web.controller;
 
 import jakarta.persistence.EntityNotFoundException;
+import com.join.back.service.UserActionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,6 +19,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", exception.getMessage()));
+    }
+
+    @ExceptionHandler(UserActionException.class)
+    public ResponseEntity<Map<String, String>> handleUserAction(UserActionException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", exception.getMessage(), "message", exception.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)

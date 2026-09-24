@@ -1,6 +1,7 @@
 package com.join.back.web.controller;
 
 import com.join.back.model.dto.EventCardResponse;
+import com.join.back.model.dto.LikeResultResponse;
 import com.join.back.repository.UserRepository;
 import com.join.back.service.LikeService;
 import org.springframework.data.domain.Page;
@@ -25,10 +26,9 @@ public class LikeController extends BaseAuthController {
     }
 
     @PostMapping("/{id}/like")
-    public ResponseEntity<Void> likeEvent(@PathVariable Long id) {
+    public ResponseEntity<LikeResultResponse> likeEvent(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
-        likeService.like(userId, id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(likeService.like(userId, id));
     }
 
     @DeleteMapping("/{id}/like")

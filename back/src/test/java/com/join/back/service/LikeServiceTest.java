@@ -1,11 +1,17 @@
 package com.join.back.service;
 
 import com.join.back.model.dto.EventCardResponse;
+import com.join.back.model.dto.LikeResultResponse;
+import com.join.back.model.entity.Chat;
 import com.join.back.model.entity.Event;
 import com.join.back.model.entity.EventLike;
 import com.join.back.model.entity.EventType;
+import com.join.back.model.entity.Match;
+import com.join.back.model.entity.User;
+import com.join.back.repository.ChatRepository;
 import com.join.back.repository.EventLikeRepository;
 import com.join.back.repository.EventRepository;
+import com.join.back.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -52,6 +59,12 @@ class LikeServiceTest {
     @Mock
     private MatchService matchService;
 
+    @Mock
+    private ChatRepository chatRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private LikeService likeService;
 
@@ -63,6 +76,42 @@ class LikeServiceTest {
         likeService.like(1L, 10L);
 
         verify(eventLikeRepository).save(any(EventLike.class));
+    }
+
+    @Test
+    void likeShouldReturnNewMatchWithChatAndCompanion() {
+        when(eventLikeRepository.existsByUserIdAndEventId(1L, 10L)).thenReturn(false);
+        when(eventLikeRepository.countByUserIdAndCreatedAtAfter(eq(1L), any(LocalDateTime.class))).thenReturn(0L);
+        Match match = Match.builder().id(5L).user1Id(1L).user2Id(2L).eventId(10L).build();
+        when(matchService.checkAndCreateMatch(1L, 10L)).thenReturn(List.of(match));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(User.builder().id(2L).firstName("Аня").build()));
+        when(chatRepository.findByMatchId(5L)).thenReturn(Optional.of(Chat.builder().id(77L).build()));
+        when(eventLikeRepository.findByEventId(10L)).thenReturn(List.of(
+                EventLike.builder().userId(1L).eventId(10L).build(),
+                EventLike.builder().userId(2L).eventId(10L).build(),
+                EventLike.builder().userId(3L).eventId(10L).build()));
+
+        LikeResultResponse result = likeService.like(1L, 10L);
+
+        assertEquals(1, result.matches().size());
+        assertEquals(77L, result.matches().get(0).chatId());
+        assertEquals(2L, result.matches().get(0).companionId());
+        assertEquals("Аня", result.matches().get(0).companionName());
+        assertEquals(2, result.othersInterested());
+    }
+
+    @Test
+    void likeWithoutCompanionsShouldReturnNoMatches() {
+        when(eventLikeRepository.existsByUserIdAndEventId(1L, 10L)).thenReturn(false);
+        when(eventLikeRepository.countByUserIdAndCreatedAtAfter(eq(1L), any(LocalDateTime.class))).thenReturn(0L);
+        when(matchService.checkAndCreateMatch(1L, 10L)).thenReturn(List.of());
+        when(eventLikeRepository.findByEventId(10L)).thenReturn(List.of(
+                EventLike.builder().userId(1L).eventId(10L).build()));
+
+        LikeResultResponse result = likeService.like(1L, 10L);
+
+        assertTrue(result.matches().isEmpty());
+        assertEquals(0, result.othersInterested());
     }
 
     @Test

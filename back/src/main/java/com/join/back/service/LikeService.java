@@ -1,10 +1,15 @@
 package com.join.back.service;
 
 import com.join.back.model.dto.EventCardResponse;
+import com.join.back.model.dto.LikeResultResponse;
 import com.join.back.model.entity.Event;
 import com.join.back.model.entity.EventLike;
+import com.join.back.model.entity.Match;
+import com.join.back.model.entity.User;
+import com.join.back.repository.ChatRepository;
 import com.join.back.repository.EventLikeRepository;
 import com.join.back.repository.EventRepository;
+import com.join.back.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,17 +32,19 @@ public class LikeService {
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final MatchService matchService;
+    private final ChatRepository chatRepository;
+    private final UserRepository userRepository;
 
     @Transactional(transactionManager = "transactionManager")
-    public void like(Long userId, Long eventId) {
+    public LikeResultResponse like(Long userId, Long eventId) {
         if (eventLikeRepository.existsByUserIdAndEventId(userId, eventId)) {
-            return;
+            return new LikeResultResponse(List.of(), countOthersInterested(userId, eventId));
         }
 
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         long likesToday = eventLikeRepository.countByUserIdAndCreatedAtAfter(userId, startOfDay);
         if (likesToday >= DAILY_LIKE_LIMIT) {
-            throw new IllegalStateException("Daily like limit of " + DAILY_LIKE_LIMIT + " reached");
+            throw new UserActionException("Сегодня можно лайкнуть не больше " + DAILY_LIKE_LIMIT + " событий — возвращайся завтра");
         }
 
         EventLike eventLike = EventLike.builder()
@@ -48,7 +55,26 @@ public class LikeService {
 
         eventLikeRepository.save(eventLike);
 
-        matchService.checkAndCreateMatch(userId, eventId);
+        List<Match> matches = matchService.checkAndCreateMatch(userId, eventId);
+        return new LikeResultResponse(toNewMatches(userId, matches), countOthersInterested(userId, eventId));
+    }
+
+    private List<LikeResultResponse.NewMatch> toNewMatches(Long userId, List<Match> matches) {
+        if (matches == null || matches.isEmpty()) {
+            return List.of();
+        }
+        return matches.stream().map(match -> {
+            Long companionId = match.getUser1Id().equals(userId) ? match.getUser2Id() : match.getUser1Id();
+            String companionName = userRepository.findById(companionId).map(User::getFirstName).orElse(null);
+            Long chatId = chatRepository.findByMatchId(match.getId()).map(chat -> chat.getId()).orElse(null);
+            return new LikeResultResponse.NewMatch(chatId, companionId, companionName);
+        }).toList();
+    }
+
+    private long countOthersInterested(Long userId, Long eventId) {
+        return eventLikeRepository.findByEventId(eventId).stream()
+                .filter(like -> !like.getUserId().equals(userId))
+                .count();
     }
 
     @Transactional(transactionManager = "transactionManager")
