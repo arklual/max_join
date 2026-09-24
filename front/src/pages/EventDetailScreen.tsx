@@ -33,7 +33,10 @@ import Snackbar from '@mui/material/Snackbar';
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
 import LinkifiedText from '../components/LinkifiedText';
 import PushkinCardInfo from '../components/PushkinCardInfo';
-import { openExternalLink } from '../api/maxBridge';
+import { reportLikeResult, type LikeResult } from '../components/LikeFeedback';
+import { openExternalLink, shareToMax } from '../api/maxBridge';
+import { loadAppConfig } from '../api/appConfig';
+import { buildEventStartLink } from '../utils/startTarget';
 import { nativeCopy } from '../api/native';
 import { formatPrice } from '../utils/format';
 import { formatEventDateTime } from '../utils/dateUtils';
@@ -42,6 +45,7 @@ import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
 import FavoriteOutlined from '@mui/icons-material/FavoriteOutlined';
 import FavoriteBorderOutlined from '@mui/icons-material/FavoriteBorderOutlined';
 import AddOutlined from '@mui/icons-material/AddOutlined';
+import PersonAddAltOutlined from '@mui/icons-material/PersonAddAltOutlined';
 import { getTagChipSx } from '../components/tagChipStyles';
 
 // ── Create Group Modal ────────────────────────────────────────────────────────
@@ -421,7 +425,11 @@ export default function EventDetailScreen() {
 
     try {
       if (newLiked) {
-        await apiClient.post(`/events/${event.id}/like`);
+        const res = await apiClient.post<LikeResult | ''>(`/events/${event.id}/like`);
+        reportLikeResult(event.title, res.data || null);
+        if (res.data && res.data.matches.length > 0) {
+          setEvent((prev) => prev ? { ...prev, hasMatch: true } : prev);
+        }
       } else {
         await apiClient.delete(`/events/${event.id}/like`);
       }
@@ -444,6 +452,32 @@ export default function EventDetailScreen() {
   function handleConfirmUnlike() {
     setShowUnlikeConfirm(false);
     performLikeToggle();
+  }
+
+  async function handleInviteFriend() {
+    if (!event) return;
+    const { maxBotUsername } = await loadAppConfig();
+    const link = maxBotUsername
+      ? buildEventStartLink(event.id, maxBotUsername)
+      : `${window.location.origin}/events/${event.id}`;
+    const when = formatEventDateTime(event.eventDate, event.eventTime);
+    const text = `Пойдём вместе на «${event.title}»${when ? ` — ${when}` : ''}?`;
+
+    if (await shareToMax(text, link)) return;
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: event.title, text, url: link });
+        return;
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+      }
+    }
+    try {
+      if (!(await nativeCopy(`${text} ${link}`))) await navigator.clipboard.writeText(`${text} ${link}`);
+      setSnack('Ссылка на событие скопирована — отправь её другу');
+    } catch {
+      setSnack('Не удалось поделиться ссылкой');
+    }
   }
 
   function handleBuyTicket() {
@@ -654,6 +688,15 @@ export default function EventDetailScreen() {
             )}
           </IconButton>
         </Box>
+
+        <Button
+          variant="tonal"
+          onClick={handleInviteFriend}
+          startIcon={<PersonAddAltOutlined />}
+          sx={{ textTransform: 'none', borderRadius: 6, py: 1, fontWeight: 600, mt: -1.5, mb: 1 }}
+        >
+          Позвать друга
+        </Button>
 
         {/* Groups section */}
         <GroupsSection eventId={event.id} />

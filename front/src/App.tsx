@@ -4,6 +4,8 @@ import SplashScreen from './pages/SplashScreen';
 import RegistrationScreen from './pages/RegistrationScreen';
 import LoginScreen from './pages/LoginScreen';
 import NativeBridge from './components/NativeBridge';
+import MaxBackButton from './components/MaxBackButton';
+import { LikeFeedbackHost } from './components/LikeFeedback';
 import AfishaScreen from './pages/AfishaScreen';
 import LikesScreen from './pages/LikesScreen';
 import ChatsListScreen from './pages/ChatsListScreen';
@@ -26,6 +28,8 @@ export default function App() {
     <M3>
       <BrowserRouter>
         <NativeBridge />
+        <MaxBackButton />
+        <LikeFeedbackHost />
         <Routes>
           <Route path="/" element={<SplashScreen />} />
           <Route path="/register" element={<RegistrationScreen />} />

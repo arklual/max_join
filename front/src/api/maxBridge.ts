@@ -25,6 +25,17 @@ export interface MaxWebApp {
   openMaxLink?: (url: string) => void;
   openCodeReader?: (fileSelect?: boolean) => Promise<string | { value?: string }>;
   shareMaxContent?: (params: { text?: string; link?: string }) => Promise<unknown>;
+  shareContent?: (params: { text?: string; link?: string }) => Promise<unknown>;
+  BackButton?: {
+    show: () => void;
+    hide: () => void;
+    onClick: (cb: () => void) => void;
+    offClick: (cb: () => void) => void;
+  };
+  HapticFeedback?: {
+    impactOccurred: (style: 'soft' | 'light' | 'medium' | 'heavy' | 'rigid', disableVibrationFallback?: boolean) => void;
+    notificationOccurred: (type: 'error' | 'success' | 'warning', disableVibrationFallback?: boolean) => void;
+  };
 }
 
 export function getMaxWebApp(): MaxWebApp | null {
@@ -123,4 +134,50 @@ export function openMaxDeepLink(url: string): void {
     return;
   }
   openExternalLink(url);
+}
+
+/** Tactile feedback on key actions (MAX mobile only; a no-op elsewhere). */
+export function haptic(kind: 'light' | 'success' | 'error'): void {
+  const feedback = getInitDataRaw() ? getMaxWebApp()?.HapticFeedback : undefined;
+  try {
+    if (kind === 'light') feedback?.impactOccurred('light', true);
+    else feedback?.notificationOccurred(kind, true);
+  } catch {
+    // unsupported on this platform
+  }
+}
+
+/**
+ * Shares a link to a MAX chat of the user's choice. Returns false when sharing inside MAX
+ * is unavailable, so the caller can fall back (system share sheet / copy).
+ */
+export async function shareToMax(text: string, link: string): Promise<boolean> {
+  const app = getInitDataRaw() ? getMaxWebApp() : null;
+  if (!app?.shareMaxContent) return false;
+  try {
+    await app.shareMaxContent({ text, link });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** MAX system back button; returns a cleanup function. No-op outside MAX. */
+export function showMaxBackButton(onBack: () => void): () => void {
+  const button = getInitDataRaw() ? getMaxWebApp()?.BackButton : undefined;
+  if (!button) return () => {};
+  try {
+    button.onClick(onBack);
+    button.show();
+  } catch {
+    return () => {};
+  }
+  return () => {
+    try {
+      button.offClick(onBack);
+      button.hide();
+    } catch {
+      // ignore
+    }
+  };
 }

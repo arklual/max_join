@@ -16,6 +16,7 @@ import SearchBar from '../components/SearchBar';
 import EventFiltersPanel from '../components/EventFilters';
 import EventCard from '../components/EventCard';
 import PeopleFilters from '../components/PeopleFilters';
+import HowItWorksCard from '../components/HowItWorksCard';
 
 const PAGE_SIZE = 20;
 const INPUT_DEBOUNCE_MS = 350;
@@ -400,6 +401,8 @@ export default function AfishaScreen() {
           </Box>
         </Collapse>
       </Box>
+
+      {!initialLoading && <HowItWorksCard />}
 
       {filters.pushkinCard && (
         <Box>

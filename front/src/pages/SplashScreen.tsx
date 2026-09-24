@@ -6,6 +6,7 @@ import Logo from '../components/Logo';
 import { getAuthToken, isMessengerApp } from '../api/platform';
 import { getStartParam } from '../api/maxBridge';
 import { INVITE_START_PARAM_PREFIX, rememberPendingInvite, takePendingInvite } from '../utils/inviteLinks';
+import { routeForStartParam } from '../utils/startTarget';
 
 type SplashState = 'loading' | 'error';
 
@@ -25,7 +26,9 @@ export default function SplashScreen() {
     // after auth so the join dialog auto-fires.
     const inviteCode = readFriendGroupInvite();
     if (inviteCode) rememberPendingInvite(inviteCode);
-    const postAuthTarget = inviteCode ? `/friend-groups?invite=${inviteCode}` : '/afisha';
+    // Other deep links (bot notifications, shared events): chat_<id>, event_<id>, pushkin…
+    const deepLink = inviteCode ? null : readStartParams().map(routeForStartParam).find(Boolean) ?? null;
+    const postAuthTarget = inviteCode ? `/friend-groups?invite=${inviteCode}` : deepLink ?? '/afisha';
 
     // Outside MAX there is no signed init data: sign in with email + password first.
     if (!isMessengerApp() && !getAuthToken()) {
@@ -119,32 +122,40 @@ export default function SplashScreen() {
   );
 }
 
-function readFriendGroupInvite(): string | null {
-  // Candidates in priority order:
-  //  1. MAX Bridge  — window.WebApp.initDataUnsafe.start_param
-  //  2. URL hash    — #WebAppStartParam=join_<code> (raw launch params)
-  //  3. URL search  — ?startapp=...   (dev / browser preview)
-  //                   ?invite=<code>  (open_app button URL we send
-  //                                    from bot /start join_<code>)
+/**
+ * Raw start parameters in priority order:
+ *  1. MAX Bridge  — window.WebApp.initDataUnsafe.start_param
+ *  2. URL hash    — #WebAppStartParam=... (raw launch params)
+ *  3. URL search  — ?startapp=... (dev / browser preview)
+ */
+function readStartParams(): string[] {
   const candidates: (string | null | undefined)[] = [getStartParam()];
-
   try {
     const rawHash = window.location.hash.startsWith('#')
       ? window.location.hash.slice(1)
       : window.location.hash;
     if (rawHash) {
-      const hashParams = new URLSearchParams(rawHash);
-      candidates.push(hashParams.get('WebAppStartParam'));
+      candidates.push(new URLSearchParams(rawHash).get('WebAppStartParam'));
     }
   } catch {
     // ignore
   }
+  try {
+    candidates.push(new URLSearchParams(window.location.search).get('startapp'));
+  } catch {
+    // ignore
+  }
+  return candidates.filter((c): c is string => !!c);
+}
+
+function readFriendGroupInvite(): string | null {
+  // start_param join_<code>, or ?invite=<code> (open_app button URL we send
+  // from bot /start join_<code>).
+  const candidates = readStartParams();
 
   let searchInvite: string | null = null;
   try {
-    const params = new URLSearchParams(window.location.search);
-    candidates.push(params.get('startapp'));
-    searchInvite = params.get('invite');
+    searchInvite = new URLSearchParams(window.location.search).get('invite');
   } catch {
     // ignore
   }
