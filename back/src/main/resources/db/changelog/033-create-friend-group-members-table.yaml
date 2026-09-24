@@ -1,0 +1,77 @@
+databaseChangeLog:
+  - changeSet:
+      id: 033-create-friend-group-members-table
+      author: junior1
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            tableExists:
+              tableName: friend_group_members
+      changes:
+        - createTable:
+            tableName: friend_group_members
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: friend_group_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_friend_group_members_group_id
+                    references: friend_groups(id)
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_friend_group_members_user_id
+                    references: users(id)
+              - column:
+                  name: role
+                  type: VARCHAR(20)
+                  defaultValue: MEMBER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: ACTIVE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: joined_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: left_at
+                  type: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: friend_group_members
+            columnNames: friend_group_id, user_id
+            constraintName: uq_friend_group_members_group_user
+        - createIndex:
+            tableName: friend_group_members
+            indexName: idx_friend_group_members_group_status
+            columns:
+              - column:
+                  name: friend_group_id
+              - column:
+                  name: status
+        - createIndex:
+            tableName: friend_group_members
+            indexName: idx_friend_group_members_user_status
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: status
+      rollback:
+        - dropTable:
+            tableName: friend_group_members

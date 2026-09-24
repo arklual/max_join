@@ -1,0 +1,122 @@
+package com.join.back.web.controller;
+
+import com.join.back.service.MaxBotApiClient;
+import com.join.back.service.MaxBotInfoService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(controllers = MaxWebhookController.class,
+        excludeAutoConfiguration = {org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})
+@AutoConfigureMockMvc(addFilters = false)
+@ActiveProfiles("test")
+@TestPropertySource(properties = "max.webhook-secret=s3cret")
+class MaxWebhookControllerTest {
+
+    private static final String SECRET_HEADER = "X-Max-Bot-Api-Secret";
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private com.join.back.service.MaxLinkService maxLinkService;
+
+    @MockBean
+    private com.join.back.service.MaxLoginService maxLoginService;
+
+    @MockBean
+    private MaxBotApiClient maxBotApiClient;
+
+    @MockBean
+    private MaxBotInfoService maxBotInfoService;
+
+    @BeforeEach
+    void setUp() {
+        when(maxBotInfoService.getUsername()).thenReturn("join_bot");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void botStartedWithInvitePayloadSendsOpenAppButtonWithPayload() throws Exception {
+        String update = """
+                {"update_type":"bot_started","timestamp":1,"chat_id":42,
+                 "user":{"user_id":7,"first_name":"Ann"},"payload":"join_AbC123"}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
+        verify(maxBotApiClient).sendMessageToChat(eq(42L), any(), isNull(), keyboard.capture());
+        Map<String, Object> button = keyboard.getValue().get(0).get(0);
+        assertThat(button).containsEntry("type", "open_app")
+                .containsEntry("web_app", "join_bot")
+                .containsEntry("payload", "join_abc123");
+    }
+
+    @Test
+    void startCommandMessageSendsWelcome() throws Exception {
+        String update = """
+                {"update_type":"message_created","timestamp":1,
+                 "message":{"sender":{"user_id":7},"recipient":{"chat_id":99,"chat_type":"dialog"},
+                            "body":{"mid":"m1","text":"/start"}}}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        verify(maxBotApiClient).sendMessageToChat(eq(99L), any(), isNull(), any());
+    }
+
+    @Test
+    void botStartedWithLinkPayloadLinksTheMaxAccount() throws Exception {
+        when(maxLinkService.link("tok123", 7L)).thenReturn(
+                new com.join.back.service.MaxLinkService.Outcome(com.join.back.service.MaxLinkService.Result.LINKED, null));
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"update_type\":\"bot_started\",\"chat_id\":42,\"user\":{\"user_id\":7},\"payload\":\"link_tok123\"}"))
+                .andExpect(status().isOk());
+
+        verify(maxLinkService).link("tok123", 7L);
+        verify(maxBotApiClient).sendMessageToChat(eq(42L), any(), isNull(), any());
+    }
+
+    @Test
+    void rejectsUpdateWithWrongSecret() throws Exception {
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "wrong")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"update_type\":\"bot_started\",\"chat_id\":1}"))
+                .andExpect(status().isUnauthorized());
+
+        verify(maxBotApiClient, never()).sendMessageToChat(anyLong(), any(), any(), any());
+    }
+}

@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 037-make-telegram-id-nullable
+      author: join-team
+      preConditions:
+        - onFail: HALT
+        - columnExists:
+            tableName: users
+            columnName: telegram_id
+      changes:
+        - dropNotNullConstraint:
+            tableName: users
+            columnName: telegram_id
+            columnDataType: BIGINT
+      rollback:
+        - addNotNullConstraint:
+            tableName: users
+            columnName: telegram_id
+            columnDataType: BIGINT

@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: 013-add-parser-fields-to-events
+      author: join-team
+      changes:
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: source
+                  type: VARCHAR(50)
+                  defaultValue: "MANUAL"
+                  remarks: "Source: MANUAL, KUDAGO, TIMEPAD, TELEGRAM, CULTURE_RU"
+              - column:
+                  name: external_id
+                  type: VARCHAR(255)
+                  remarks: "Event ID in the external system"
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: "ACTIVE"
+                  remarks: "ACTIVE, NEEDS_REVIEW, REJECTED, ARCHIVED"
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: events
+            columnNames: source, external_id
+            constraintName: uq_events_source_external_id

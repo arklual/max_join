@@ -1,0 +1,61 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-matches-table
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: matches
+      changes:
+        - createTable:
+            tableName: matches
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user1_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_matches_user1
+                    references: users(id)
+              - column:
+                  name: user2_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_matches_user2
+                    references: users(id)
+              - column:
+                  name: event_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_matches_event
+                    references: events(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: 006-create-matches-unique-index
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: idx_matches_users_event
+      changes:
+        - sql:
+            sql: >
+              CREATE UNIQUE INDEX idx_matches_users_event
+              ON matches (LEAST(user1_id, user2_id), GREATEST(user1_id, user2_id), event_id)

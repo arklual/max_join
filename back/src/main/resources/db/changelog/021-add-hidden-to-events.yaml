@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 021-add-hidden-to-events
+      author: junior2
+      changes:
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: hidden
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:join_test_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+max:
+  bot-token: test-bot-token-for-testing
+
+join:
+  jwt:
+    secret: VGVzdFNlY3JldFRlc3RTZWNyZXRUZXN0U2VjcmV0VGVzdFNlY3JldA==
+    ttl-days: 30

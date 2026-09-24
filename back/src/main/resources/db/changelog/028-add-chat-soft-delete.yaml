@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 028-add-chat-soft-delete
+      author: system
+      changes:
+        - addColumn:
+            tableName: chats
+            columns:
+              - column:
+                  name: user1_deleted_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: user2_deleted_at
+                  type: timestamp
+                  constraints:
+                    nullable: true

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JOIN</title>
+    <script src="https://st.max.ru/js/max-web-app.js"></script>
+    <script>
+      // Load the Telegram Mini App SDK only inside Telegram: telegram.org can be slow or
+      // blocked elsewhere, and a blocking <script> would stall MAX / the Android app.
+      (function () {
+        var inTelegram = /tgWebApp(Data|Version|Platform)=/.test(location.hash) || !!window.TelegramWebviewProxy;
+        try { inTelegram = inTelegram || !!sessionStorage.getItem('__telegram__initParams'); } catch (e) {}
+        if (inTelegram) document.write('<script src="/telegram-web-app.js"><\/script>');
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

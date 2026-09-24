@@ -1,0 +1,40 @@
+databaseChangeLog:
+  - changeSet:
+      id: 040-add-max-id-to-users
+      author: join-team
+      comment: >
+        Port from Telegram to MAX. MAX user ids live in their own namespace, so
+        they get a dedicated column instead of reusing telegram_id — otherwise a
+        legacy Telegram id could collide with an unrelated MAX user's id.
+        telegram_id stays as a legacy, no longer mapped column.
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: users
+                columnName: max_id
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: max_id
+                  type: BIGINT
+                  constraints:
+                    unique: true
+                    uniqueConstraintName: uq_users_max_id
+        - sql:
+            sql: >
+              ALTER TABLE users DROP CONSTRAINT chk_users_identity;
+              ALTER TABLE users ADD CONSTRAINT chk_users_identity
+                CHECK (max_id IS NOT NULL OR telegram_id IS NOT NULL OR email IS NOT NULL)
+            stripComments: true
+      rollback:
+        - sql:
+            sql: >
+              ALTER TABLE users DROP CONSTRAINT chk_users_identity;
+              ALTER TABLE users ADD CONSTRAINT chk_users_identity
+                CHECK (telegram_id IS NOT NULL OR email IS NOT NULL)
+        - dropColumn:
+            tableName: users
+            columnName: max_id

@@ -1,0 +1,81 @@
+databaseChangeLog:
+  - changeSet:
+      id: 017-create-group-gatherings-table
+      author: junior1
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            tableExists:
+              tableName: group_gatherings
+      changes:
+        - createTable:
+            tableName: group_gatherings
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: event_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_group_gatherings_event_id
+                    references: events(id)
+              - column:
+                  name: creator_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_group_gatherings_creator_id
+                    references: users(id)
+              - column:
+                  name: title
+                  type: VARCHAR(100)
+              - column:
+                  name: description
+                  type: TEXT
+              - column:
+                  name: max_size
+                  type: INT
+                  defaultValueNumeric: 5
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: OPEN
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - createIndex:
+            tableName: group_gatherings
+            indexName: idx_group_gatherings_event_id
+            columns:
+              - column:
+                  name: event_id
+        - createIndex:
+            tableName: group_gatherings
+            indexName: idx_group_gatherings_creator_id
+            columns:
+              - column:
+                  name: creator_id
+        - createIndex:
+            tableName: group_gatherings
+            indexName: idx_group_gatherings_status
+            columns:
+              - column:
+                  name: status
+      rollback:
+        - dropTable:
+            tableName: group_gatherings

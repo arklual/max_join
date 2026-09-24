@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 042-add-pushkin-card-to-events
+      author: join-team
+      comment: Events that can be paid for with the Pushkin card (Пушкинская карта).
+      changes:
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: pushkin_card
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false

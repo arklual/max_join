@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 011-add-university-to-users
+      author: junior2
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: university_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: preferred_university_id
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            constraintName: fk_users_university
+            baseTableName: users
+            baseColumnNames: university_id
+            referencedTableName: universities
+            referencedColumnNames: id

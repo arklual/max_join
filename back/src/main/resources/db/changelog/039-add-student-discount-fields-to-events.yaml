@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 039-add-student-discount-fields-to-events
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            columnExists:
+              tableName: events
+              columnName: original_price
+      changes:
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: original_price
+                  type: DECIMAL(12, 2)
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: student_promo_code
+                  type: VARCHAR(64)
+        - addColumn:
+            tableName: events
+            columns:
+              - column:
+                  name: student_promo_note
+                  type: TEXT
+      rollback:
+        - dropColumn:
+            tableName: events
+            columnName: student_promo_note
+        - dropColumn:
+            tableName: events
+            columnName: student_promo_code
+        - dropColumn:
+            tableName: events
+            columnName: original_price

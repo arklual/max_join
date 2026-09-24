@@ -1,0 +1,114 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-insert-sample-events
+      author: join-team
+      context: dev,local
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: events
+      changes:
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Startup Networking Night" }
+              - column: { name: description, value: "Meet founders and investors at the biggest networking event of the year." }
+              - column: { name: type, value: "CAREER" }
+              - column: { name: image_url, value: "https://example.com/images/networking.jpg" }
+              - column: { name: price, valueNumeric: 0 }
+              - column: { name: event_date, valueDate: "2026-04-15" }
+              - column: { name: event_time, value: "19:00:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/networking" }
+              - column: { name: city, value: "Moscow" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Swan Lake Ballet" }
+              - column: { name: description, value: "Classic Tchaikovsky ballet performed by the Bolshoi Theatre." }
+              - column: { name: type, value: "THEATER" }
+              - column: { name: image_url, value: "https://example.com/images/swan-lake.jpg" }
+              - column: { name: price, valueNumeric: 2500.00 }
+              - column: { name: event_date, valueDate: "2026-04-20" }
+              - column: { name: event_time, value: "18:30:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/swan-lake" }
+              - column: { name: city, value: "Moscow" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Modern Art Exhibition" }
+              - column: { name: description, value: "Contemporary art from emerging Russian artists." }
+              - column: { name: type, value: "ART" }
+              - column: { name: image_url, value: "https://example.com/images/modern-art.jpg" }
+              - column: { name: price, valueNumeric: 800.00 }
+              - column: { name: event_date, valueDate: "2026-05-01" }
+              - column: { name: event_time, value: "10:00:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/modern-art" }
+              - column: { name: city, value: "Saint Petersburg" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Rock Concert: Night Wolves" }
+              - column: { name: description, value: "Live rock concert featuring local bands and special guests." }
+              - column: { name: type, value: "MUSIC" }
+              - column: { name: image_url, value: "https://example.com/images/rock-concert.jpg" }
+              - column: { name: price, valueNumeric: 1500.00 }
+              - column: { name: event_date, valueDate: "2026-05-10" }
+              - column: { name: event_time, value: "20:00:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/rock-concert" }
+              - column: { name: city, value: "Moscow" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "City Marathon 2026" }
+              - column: { name: description, value: "Annual city marathon with 5K, 10K and full marathon distances." }
+              - column: { name: type, value: "SPORT" }
+              - column: { name: image_url, value: "https://example.com/images/marathon.jpg" }
+              - column: { name: price, valueNumeric: 500.00 }
+              - column: { name: event_date, valueDate: "2026-06-01" }
+              - column: { name: event_time, value: "08:00:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/marathon" }
+              - column: { name: city, value: "Kazan" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Film Premiere: Northern Lights" }
+              - column: { name: description, value: "Exclusive premiere of the award-winning documentary." }
+              - column: { name: type, value: "CINEMA" }
+              - column: { name: image_url, value: "https://example.com/images/northern-lights.jpg" }
+              - column: { name: price, valueNumeric: 600.00 }
+              - column: { name: event_date, valueDate: "2026-05-15" }
+              - column: { name: event_time, value: "19:30:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/northern-lights" }
+              - column: { name: city, value: "Moscow" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Pottery Workshop" }
+              - column: { name: description, value: "Learn pottery basics in a 3-hour hands-on workshop." }
+              - column: { name: type, value: "MASTER_CLASS" }
+              - column: { name: image_url, value: "https://example.com/images/pottery.jpg" }
+              - column: { name: price, valueNumeric: 3000.00 }
+              - column: { name: event_date, valueDate: "2026-04-25" }
+              - column: { name: event_time, value: "14:00:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/pottery" }
+              - column: { name: city, value: "Saint Petersburg" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }
+        - insert:
+            tableName: events
+            columns:
+              - column: { name: title, value: "Moscow Kremlin Tour" }
+              - column: { name: description, value: "Guided tour of the Moscow Kremlin with professional historian." }
+              - column: { name: type, value: "EXCURSION" }
+              - column: { name: image_url, value: "https://example.com/images/kremlin.jpg" }
+              - column: { name: price, valueNumeric: 1200.00 }
+              - column: { name: event_date, valueDate: "2026-05-05" }
+              - column: { name: event_time, value: "11:00:00" }
+              - column: { name: ticket_url, value: "https://example.com/tickets/kremlin" }
+              - column: { name: city, value: "Moscow" }
+              - column: { name: created_at, valueComputed: "CURRENT_TIMESTAMP" }

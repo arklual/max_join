@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-event-likes-table
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: event_likes
+      changes:
+        - createTable:
+            tableName: event_likes
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_event_likes_user
+                    references: users(id)
+              - column:
+                  name: event_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_event_likes_event
+                    references: events(id)
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: CURRENT_TIMESTAMP
+
+  - changeSet:
+      id: 005-create-event-likes-unique-index
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: idx_event_likes_user_event
+      changes:
+        - createIndex:
+            indexName: idx_event_likes_user_event
+            tableName: event_likes
+            unique: true
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: event_id

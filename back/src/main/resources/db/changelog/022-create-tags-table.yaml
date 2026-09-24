@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: 021-create-tags-table
+      author: junior1
+      changes:
+        - createTable:
+            tableName: tags
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: slug
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+        - createIndex:
+            tableName: tags
+            indexName: idx_tags_slug
+            columns:
+              - column:
+                  name: slug

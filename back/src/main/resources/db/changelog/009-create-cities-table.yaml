@@ -1,0 +1,156 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-cities-table
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: cities
+      changes:
+        - createTable:
+            tableName: cities
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+
+  - changeSet:
+      id: 009-insert-cities-data
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - sqlCheck:
+            expectedResult: 0
+            sql: SELECT COUNT(*) FROM cities
+      changes:
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Москва
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Санкт-Петербург
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Казань
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Новосибирск
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Екатеринбург
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Нижний Новгород
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Челябинск
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Самара
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Омск
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Ростов-на-Дону
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Уфа
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Красноярск
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Воронеж
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Пермь
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Волгоград
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Краснодар
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Тюмень
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Саратов
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Тольятти
+        - insert:
+            tableName: cities
+            columns:
+              - column:
+                  name: name
+                  value: Ижевск

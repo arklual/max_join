@@ -1,0 +1,93 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    command: >
+      /bin/sh -c "envsubst '$$DOMAIN' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
+      && nginx -g 'daemon off;'"
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - back
+      - front
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: join-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-join_db}
+      POSTGRES_USER: ${POSTGRES_USER:-join_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-join_user} -d ${POSTGRES_DB:-join_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  back:
+    build: ./back
+    container_name: join-back
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-join_db}
+      DB_USERNAME: ${POSTGRES_USER:-join_user}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN}
+      MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+      MAX_WEBHOOK_URL: ${MAX_WEBHOOK_URL:-https://${DOMAIN}}
+      MAX_WEBHOOK_SECRET: ${MAX_WEBHOOK_SECRET:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_WEBAPP_URL: ${TELEGRAM_WEBAPP_URL:-https://${DOMAIN}}
+      TELEGRAM_WEBHOOK_URL: ${TELEGRAM_WEBHOOK_URL:-https://${DOMAIN}}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.aiproductiv.ru/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-6-luna}
+      TICKETTOSHOW_REF_CODE: ${TICKETTOSHOW_REF_CODE:-}
+      TICKETTOSHOW_UTM_QUERY: ${TICKETTOSHOW_UTM_QUERY:-}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_TTL_DAYS: ${JWT_TTL_DAYS:-30}
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  front:
+    build:
+      context: ./front
+      args:
+        VITE_API_URL: /api
+    container_name: join-front
+    depends_on:
+      - back
+    restart: unless-stopped
+
+  admin:
+    build:
+      context: ./admin
+      args:
+        VITE_ADMIN_API_URL: /api/admin
+    container_name: join-admin
+    ports:
+      - "${ADMIN_PORT:-8081}:80"
+    depends_on:
+      - back
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  uploads_data:

@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 013-create-support-tickets-table
+      author: junior1
+      changes:
+        - createTable:
+            tableName: support_tickets
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_support_tickets_user_id
+                    references: users(id)
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: 'OPEN'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: last_message_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+        - addUniqueConstraint:
+            tableName: support_tickets
+            columnNames: user_id
+            constraintName: uq_support_tickets_user_id
+        - createIndex:
+            tableName: support_tickets
+            indexName: idx_support_tickets_status
+            columns:
+              - column:
+                  name: status
+        - createIndex:
+            tableName: support_tickets
+            indexName: idx_support_tickets_last_message_at
+            columns:
+              - column:
+                  name: last_message_at
+                  descending: true

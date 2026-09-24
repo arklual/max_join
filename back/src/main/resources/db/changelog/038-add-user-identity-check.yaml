@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 038-add-user-identity-check
+      author: join-team
+      preConditions:
+        - onFail: HALT
+        - columnExists:
+            tableName: users
+            columnName: telegram_id
+        - columnExists:
+            tableName: users
+            columnName: email
+      changes:
+        - sql:
+            sql: ALTER TABLE users ADD CONSTRAINT chk_users_identity CHECK (telegram_id IS NOT NULL OR email IS NOT NULL)
+            stripComments: true
+      rollback:
+        - sql:
+            sql: ALTER TABLE users DROP CONSTRAINT chk_users_identity

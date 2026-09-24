@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 035-add-archived-to-friend-groups
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            columnExists:
+              tableName: friend_groups
+              columnName: archived
+      changes:
+        - addColumn:
+            tableName: friend_groups
+            columns:
+              - column:
+                  name: archived
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: friend_groups
+            indexName: idx_friend_groups_archived
+            columns:
+              - column:
+                  name: archived
+      rollback:
+        - dropIndex:
+            tableName: friend_groups
+            indexName: idx_friend_groups_archived
+        - dropColumn:
+            tableName: friend_groups
+            columnName: archived

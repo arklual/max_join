@@ -1,0 +1,64 @@
+databaseChangeLog:
+  - changeSet:
+      id: 032-create-friend-groups-table
+      author: junior1
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            tableExists:
+              tableName: friend_groups
+      changes:
+        - createTable:
+            tableName: friend_groups
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: creator_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_friend_groups_creator_id
+                    references: users(id)
+              - column:
+                  name: invite_code
+                  type: VARCHAR(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_size
+                  type: INT
+                  defaultValueNumeric: 10
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: friend_groups
+            columnNames: invite_code
+            constraintName: uq_friend_groups_invite_code
+        - createIndex:
+            tableName: friend_groups
+            indexName: idx_friend_groups_creator_id
+            columns:
+              - column:
+                  name: creator_id
+      rollback:
+        - dropTable:
+            tableName: friend_groups

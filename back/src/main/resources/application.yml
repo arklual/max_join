@@ -1,0 +1,119 @@
+spring:
+  application:
+    name: join-back
+  profiles:
+    active: local
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+join:
+  jwt:
+    secret: ${JWT_SECRET:}
+    ttl-days: ${JWT_TTL_DAYS:30}
+
+max:
+  bot-token: ${MAX_BOT_TOKEN:test-bot-token}
+  bot-username: ${MAX_BOT_USERNAME:}
+  api-url: ${MAX_API_URL:https://platform-api.max.ru}
+  webhook-url: ${MAX_WEBHOOK_URL:}
+  webhook-secret: ${MAX_WEBHOOK_SECRET:}
+
+# Telegram mini app + bot (optional: disabled while the token is empty)
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  bot-username: ${TELEGRAM_BOT_USERNAME:}
+  webapp-url: ${TELEGRAM_WEBAPP_URL:}
+  webhook-url: ${TELEGRAM_WEBHOOK_URL:}
+  webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
+
+parser:
+  enabled: true
+  schedule:
+    cron: "0 0 3 * * *"
+  sources:
+    kudago:
+      enabled: true
+      base-url: https://kudago.com/public-api/v1.4
+      locations:
+        - msk
+        - spb
+      page-size: 100
+      max-pages: 50
+      request-delay-ms: 500
+    timepad:
+      enabled: false
+      base-url: https://api.timepad.ru/v1
+      token: ${TIMEPAD_API_TOKEN:}
+      limit: 100
+      max-pages: 50
+      request-delay-ms: 200
+    tickettoshow:
+      enabled: true
+      base-url: https://api.tickettoshow.ru/api
+      ref-code: ${TICKETTOSHOW_REF_CODE:}
+      utm-query: ${TICKETTOSHOW_UTM_QUERY:}
+      request-delay-ms: 300
+      default-city: Москва
+    novaya-opera:
+      enabled: ${NOVAYA_OPERA_ENABLED:true}
+      channel: ${NOVAYA_OPERA_CHANNEL:novayaopera}
+      promo-code: ${NOVAYA_OPERA_PROMO_CODE:GAUDEAMUS}
+      student-price: ${NOVAYA_OPERA_STUDENT_PRICE:600}
+      indicative-full-price: ${NOVAYA_OPERA_INDICATIVE_FULL_PRICE:5000}
+  defaults:
+    future-days: 90
+
+icebreaker:
+  enabled: ${ICEBREAKER_ENABLED:true}
+  api-key: ${AI_API_KEY:}
+  base-url: ${AI_BASE_URL:https://api.aiproductiv.ru/v1}
+  model: ${AI_MODEL:gpt-6-luna}
+  suggestions-count: 3
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:postgresql://localhost:5432/join_db
+    username: join_user
+    password: join_password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+server:
+  port: 8080
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:join_db}
+    username: ${DB_USERNAME:join_user}
+    password: ${DB_PASSWORD:join_password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    com.join.back.security: INFO

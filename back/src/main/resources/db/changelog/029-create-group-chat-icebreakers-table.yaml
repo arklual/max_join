@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 029-create-group-chat-icebreakers-table
+      author: join-team
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: group_chat_icebreakers
+      changes:
+        - createTable:
+            tableName: group_chat_icebreakers
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_chat_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_group_chat_icebreakers_group_chat
+                    references: group_chats(id)
+              - column:
+                  name: suggestions
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: CURRENT_TIMESTAMP

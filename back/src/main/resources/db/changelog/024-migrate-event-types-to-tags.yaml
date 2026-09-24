@@ -1,0 +1,37 @@
+databaseChangeLog:
+  - changeSet:
+      id: 023-migrate-event-types-to-tags
+      author: junior1
+      comment: "Create tags for each EventType and link existing events to corresponding tags"
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO tags (name, slug) VALUES
+                ('Карьера', 'career'),
+                ('Театр', 'theater'),
+                ('Искусство', 'art'),
+                ('Музыка', 'music'),
+                ('Спорт', 'sport'),
+                ('Кино', 'cinema'),
+                ('Мастер-класс', 'master-class'),
+                ('Экскурсия', 'excursion'),
+                ('Фестиваль', 'festival')
+              ON CONFLICT (slug) DO NOTHING;
+
+        - sql:
+            sql: |
+              INSERT INTO event_tags (event_id, tag_id)
+              SELECT e.id, t.id
+              FROM events e
+              JOIN tags t ON t.slug = CASE e.type
+                WHEN 'CAREER'      THEN 'career'
+                WHEN 'THEATER'     THEN 'theater'
+                WHEN 'ART'         THEN 'art'
+                WHEN 'MUSIC'       THEN 'music'
+                WHEN 'SPORT'       THEN 'sport'
+                WHEN 'CINEMA'      THEN 'cinema'
+                WHEN 'MASTER_CLASS' THEN 'master-class'
+                WHEN 'EXCURSION'   THEN 'excursion'
+                WHEN 'FESTIVAL'    THEN 'festival'
+              END
+              ON CONFLICT DO NOTHING;

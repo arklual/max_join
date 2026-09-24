@@ -1,0 +1,67 @@
+databaseChangeLog:
+  - changeSet:
+      id: 020-create-group-chat-messages-table
+      author: junior1
+      preConditions:
+        - onFail: MARK_RAN
+          not:
+            tableExists:
+              tableName: group_chat_messages
+      changes:
+        - createTable:
+            tableName: group_chat_messages
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_chat_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_group_chat_messages_chat_id
+                    references: group_chats(id)
+              - column:
+                  name: sender_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_group_chat_messages_sender_id
+                    references: users(id)
+              - column:
+                  name: text
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_read
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: group_chat_messages
+            indexName: idx_group_chat_messages_chat_id
+            columns:
+              - column:
+                  name: group_chat_id
+        - createIndex:
+            tableName: group_chat_messages
+            indexName: idx_group_chat_messages_created_at
+            columns:
+              - column:
+                  name: group_chat_id
+              - column:
+                  name: created_at
+      rollback:
+        - dropTable:
+            tableName: group_chat_messages

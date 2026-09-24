@@ -1,0 +1,32 @@
+databaseChangeLog:
+  - changeSet:
+      id: 022-create-event-tags-table
+      author: junior1
+      changes:
+        - createTable:
+            tableName: event_tags
+            columns:
+              - column:
+                  name: event_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_event_tags_event
+                    references: events(id)
+              - column:
+                  name: tag_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_event_tags_tag
+                    references: tags(id)
+        - addPrimaryKey:
+            tableName: event_tags
+            columnNames: event_id, tag_id
+            constraintName: pk_event_tags
+        - createIndex:
+            tableName: event_tags
+            indexName: idx_event_tags_tag_id
+            columns:
+              - column:
+                  name: tag_id
