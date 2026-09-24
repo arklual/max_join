@@ -38,7 +38,7 @@ import { openExternalLink, shareToMax } from '../api/maxBridge';
 import { loadAppConfig } from '../api/appConfig';
 import { buildEventStartLink } from '../utils/startTarget';
 import { nativeCopy } from '../api/native';
-import { formatPrice } from '../utils/format';
+import { formatPrice, plural } from '../utils/format';
 import { formatEventDateTime } from '../utils/dateUtils';
 
 import ArrowBackOutlined from '@mui/icons-material/ArrowBackOutlined';
@@ -46,6 +46,7 @@ import FavoriteOutlined from '@mui/icons-material/FavoriteOutlined';
 import FavoriteBorderOutlined from '@mui/icons-material/FavoriteBorderOutlined';
 import AddOutlined from '@mui/icons-material/AddOutlined';
 import PersonAddAltOutlined from '@mui/icons-material/PersonAddAltOutlined';
+import GroupOutlined from '@mui/icons-material/GroupOutlined';
 import { getTagChipSx } from '../components/tagChipStyles';
 
 // ── Create Group Modal ────────────────────────────────────────────────────────
@@ -593,6 +594,15 @@ export default function EventDetailScreen() {
             {whenWhere}
           </Typography>
         </Box>
+        {!!event.interestedCount && event.interestedCount > 0 && !event.hasMatch && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+            <GroupOutlined fontSize="small" />
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              Ещё {event.interestedCount} {plural(event.interestedCount, ['человек хочет', 'человека хотят', 'человек хотят'])} сюда —
+              {liked ? ' ждём подходящего напарника' : ' лайкни, чтобы найти компанию'}
+            </Typography>
+          </Box>
+        )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Chip

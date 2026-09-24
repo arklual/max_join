@@ -71,7 +71,7 @@ class EventServiceTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
 
         EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null);
 
@@ -95,7 +95,7 @@ class EventServiceTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
 
         EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null);
 
@@ -118,7 +118,7 @@ class EventServiceTest {
                 "https://example.com/image.jpg", BigDecimal.valueOf(800), null, null, null,
                 FIXED_DATE, FIXED_TIME, "https://example.com/tickets",
                 "Moscow", FIXED_CREATED_AT, false, false
-        , false);
+        , false, 0L);
 
         when(eventRepository.findById(1L)).thenReturn(Optional.of(event));
         when(eventMapper.toDetailResponse(event)).thenReturn(detailResponse);
@@ -166,7 +166,7 @@ class EventServiceTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Concert Night", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
 
         EventFilterRequest filter = new EventFilterRequest("concert", null, null, null, null, null, null, null);
 
@@ -189,7 +189,7 @@ class EventServiceTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
 
         EventFilterRequest filter = new EventFilterRequest(null, BigDecimal.valueOf(100), BigDecimal.valueOf(2000), null, null, null, null, null);
 
@@ -211,7 +211,7 @@ class EventServiceTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
 
         EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, List.of(EventType.MUSIC, EventType.SPORT), null, null);
 

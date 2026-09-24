@@ -64,6 +64,28 @@ export interface EventCard {
   hasMatch?: boolean;
   /** Payable with the Pushkin card (Пушкинская карта). */
   pushkinCard?: boolean;
+  /** Other users who liked the event. */
+  interestedCount?: number;
+}
+
+export interface OutingCompanion {
+  userId: number;
+  name: string | null;
+  photo: string | null;
+}
+
+/** An upcoming event the user goes to with a match or a group. */
+export interface Outing {
+  eventId: number;
+  title: string;
+  imageUrl: string | null;
+  eventDate: string;
+  eventTime: string | null;
+  city: string | null;
+  pushkinCard: boolean;
+  companions: OutingCompanion[];
+  chatId: number | null;
+  groupChatId: number | null;
 }
 
 export interface EventDetail extends EventCard {

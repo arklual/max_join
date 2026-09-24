@@ -55,7 +55,7 @@ class EventControllerTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
         Page<EventCardResponse> page = new PageImpl<>(List.of(cardResponse), PageRequest.of(0, 10), 1);
 
         when(eventService.getEvents(any(EventFilterRequest.class), any(Pageable.class), any())).thenReturn(page);
@@ -78,7 +78,7 @@ class EventControllerTest {
                 "https://example.com/image.jpg", BigDecimal.valueOf(1500), null, null, null,
                 FIXED_DATE, FIXED_TIME, "https://example.com/tickets",
                 "Moscow", FIXED_CREATED_AT, false, false
-        , false);
+        , false, 0L);
 
         when(eventService.getEventById(eq(1L), any())).thenReturn(detailResponse);
 
@@ -105,7 +105,7 @@ class EventControllerTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Concert Night", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
         Page<EventCardResponse> page = new PageImpl<>(List.of(cardResponse), PageRequest.of(0, 10), 1);
 
         when(eventService.getEvents(any(EventFilterRequest.class), any(Pageable.class), any())).thenReturn(page);
@@ -123,7 +123,7 @@ class EventControllerTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 1L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
         Page<EventCardResponse> page = new PageImpl<>(List.of(cardResponse), PageRequest.of(0, 10), 1);
 
         when(eventService.getEvents(any(EventFilterRequest.class), any(Pageable.class), any())).thenReturn(page);

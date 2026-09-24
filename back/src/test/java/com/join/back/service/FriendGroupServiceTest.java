@@ -359,6 +359,6 @@ class FriendGroupServiceTest {
 
     private EventCardResponse buildCard(Long id, LocalDate date) {
         return new EventCardResponse(id, "E" + id, EventType.MUSIC, null,
-                BigDecimal.ZERO, null, null, null, date, null, null, false, false, false);
+                BigDecimal.ZERO, null, null, null, date, null, null, false, false, false, 0L);
     }
 }

@@ -20,14 +20,20 @@ public record EventCardResponse(
         String city,
         boolean liked,
         boolean hasMatch,
-        boolean pushkinCard
+        boolean pushkinCard,
+        /** Other users who liked the event — "ещё N хотят пойти". */
+        long interestedCount
 ) {
 
     public EventCardResponse withLiked(boolean liked) {
-        return new EventCardResponse(id, title, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, city, liked, hasMatch, pushkinCard);
+        return new EventCardResponse(id, title, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, city, liked, hasMatch, pushkinCard, interestedCount);
+    }
+
+    public EventCardResponse withInterestedCount(long interestedCount) {
+        return new EventCardResponse(id, title, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, city, liked, hasMatch, pushkinCard, interestedCount);
     }
 
     public EventCardResponse withHasMatch(boolean hasMatch) {
-        return new EventCardResponse(id, title, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, city, liked, hasMatch, pushkinCard);
+        return new EventCardResponse(id, title, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, city, liked, hasMatch, pushkinCard, interestedCount);
     }
 }

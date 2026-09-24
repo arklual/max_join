@@ -78,7 +78,7 @@ class LikeControllerTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 10L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", true, false
-        , false);
+        , false, 0L);
         Page<EventCardResponse> page = new PageImpl<>(List.of(cardResponse), PageRequest.of(0, 10), 1);
 
         when(likeService.getLikedEvents(eq(1L), any(Pageable.class))).thenReturn(page);

@@ -32,6 +32,12 @@ public interface EventLikeRepository extends JpaRepository<EventLike, Long> {
 
     List<EventLike> findByEventId(Long eventId);
 
+    long countByEventId(Long eventId);
+
+    /** Rows of [eventId, likeCount] for the given events. */
+    @Query("SELECT el.eventId, COUNT(el) FROM EventLike el WHERE el.eventId IN :eventIds GROUP BY el.eventId")
+    List<Object[]> countByEventIds(@Param("eventIds") java.util.Collection<Long> eventIds);
+
     long countByUserIdAndCreatedAtAfter(Long userId, LocalDateTime after);
 
     void deleteByUserId(Long userId);

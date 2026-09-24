@@ -19,7 +19,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -45,8 +47,10 @@ public class EventService {
         }
 
         Set<Long> finalLikedEventIds = likedEventIds;
+        Map<Long, Long> likeCounts = likeCounts(eventPage.getContent());
         return eventPage.map(event -> {
-            EventCardResponse response = eventMapper.toCardResponse(event);
+            EventCardResponse response = eventMapper.toCardResponse(event)
+                    .withInterestedCount(othersInterested(likeCounts, event.getId(), finalLikedEventIds));
             if (finalLikedEventIds.contains(event.getId())) {
                 response = response.withLiked(true);
                 if (userId != null && matchService.hasMatchesForEvent(userId, event.getId())) {
@@ -62,15 +66,36 @@ public class EventService {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + id));
         EventDetailResponse response = eventMapper.toDetailResponse(event);
+        long likes = eventLikeRepository.countByEventId(id);
         if (userId != null) {
             if (eventLikeRepository.existsByUserIdAndEventId(userId, id)) {
                 response = response.withLiked(true);
+                likes = Math.max(0, likes - 1);
             }
             if (matchService.hasMatchesForEvent(userId, id)) {
                 response = response.withHasMatch(true);
             }
         }
-        return response;
+        return response.withInterestedCount(likes);
+    }
+
+    /** Like counts per event id for one page of events. */
+    private Map<Long, Long> likeCounts(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Long> counts = new HashMap<>();
+        List<Long> ids = events.stream().map(Event::getId).toList();
+        for (Object[] row : eventLikeRepository.countByEventIds(ids)) {
+            counts.put((Long) row[0], (Long) row[1]);
+        }
+        return counts;
+    }
+
+    /** Likes by other people: the viewer's own like is not "someone wants to go". */
+    private static long othersInterested(Map<Long, Long> likeCounts, Long eventId, Set<Long> likedByViewer) {
+        long total = likeCounts.getOrDefault(eventId, 0L);
+        return likedByViewer.contains(eventId) ? Math.max(0, total - 1) : total;
     }
 
     @Transactional(readOnly = true, transactionManager = "transactionManager")

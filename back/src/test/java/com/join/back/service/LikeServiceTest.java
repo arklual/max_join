@@ -185,7 +185,7 @@ class LikeServiceTest {
         EventCardResponse cardResponse = new EventCardResponse(
                 10L, "Test Event", EventType.MUSIC, "https://example.com/image.jpg",
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
-        , false);
+        , false, 0L);
 
         when(eventLikeRepository.findByUserId(eq(1L), eq(pageable))).thenReturn(likePage);
         when(eventRepository.findAllById(List.of(10L))).thenReturn(List.of(event));

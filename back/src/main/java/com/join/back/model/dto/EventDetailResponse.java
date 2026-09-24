@@ -24,14 +24,19 @@ public record EventDetailResponse(
         LocalDateTime createdAt,
         boolean liked,
         boolean hasMatch,
-        boolean pushkinCard
+        boolean pushkinCard,
+        long interestedCount
 ) {
 
     public EventDetailResponse withLiked(boolean liked) {
-        return new EventDetailResponse(id, title, description, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, ticketUrl, city, createdAt, liked, hasMatch, pushkinCard);
+        return new EventDetailResponse(id, title, description, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, ticketUrl, city, createdAt, liked, hasMatch, pushkinCard, interestedCount);
+    }
+
+    public EventDetailResponse withInterestedCount(long interestedCount) {
+        return new EventDetailResponse(id, title, description, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, ticketUrl, city, createdAt, liked, hasMatch, pushkinCard, interestedCount);
     }
 
     public EventDetailResponse withHasMatch(boolean hasMatch) {
-        return new EventDetailResponse(id, title, description, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, ticketUrl, city, createdAt, liked, hasMatch, pushkinCard);
+        return new EventDetailResponse(id, title, description, type, imageUrl, price, originalPrice, studentPromoCode, studentPromoNote, eventDate, eventTime, ticketUrl, city, createdAt, liked, hasMatch, pushkinCard, interestedCount);
     }
 }

@@ -19,9 +19,10 @@ import Snackbar from '@mui/material/Snackbar';
 import Portal from '@mui/material/Portal';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import GroupOutlined from '@mui/icons-material/GroupOutlined';
 import { getTagChipSx } from './tagChipStyles';
 import { formatEventDateTime } from '../utils/dateUtils';
-import { formatPrice } from '../utils/format';
+import { formatPrice, plural } from '../utils/format';
 import { PushkinCardChip } from './PushkinCardInfo';
 import { reportLikeResult, type LikeResult } from './LikeFeedback';
 
@@ -179,6 +180,21 @@ export default function EventCard({ event, onLikeToggle }: EventCardProps) {
               height: 24,
             })}
           />
+          )}
+          {!!event.interestedCount && event.interestedCount > 0 && (
+            <Chip
+              icon={<GroupOutlined sx={{ fontSize: 14 }} />}
+              label={`ещё ${event.interestedCount} ${plural(event.interestedCount, ['хочет', 'хотят', 'хотят'])}`}
+              size="small"
+              sx={(theme) => ({
+                bgcolor: theme.palette.primaryContainer.main,
+                color: theme.palette.onPrimaryContainer.main,
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                height: 22,
+                '& .MuiChip-icon': { color: 'inherit', ml: 0.5 },
+              })}
+            />
           )}
           {hasStudentPromo && formattedOriginalPrice && (
             <Chip
