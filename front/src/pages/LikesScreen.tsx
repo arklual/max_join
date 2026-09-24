@@ -11,6 +11,7 @@ import apiClient from '../api/client';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import type { EventCard as EventCardType, PageResponse } from '../types';
 import EventCard from '../components/EventCard';
+import OutingsSection from '../components/OutingsSection';
 
 const PAGE_SIZE = 20;
 
@@ -99,6 +100,8 @@ export default function LikesScreen() {
       <Typography variant="h5" sx={{ fontWeight: 700 }}>
         Избранное
       </Typography>
+
+      <OutingsSection />
 
       {initialLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
