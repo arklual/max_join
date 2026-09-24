@@ -68,6 +68,30 @@ public class CategoryMapper {
             Map.entry("детям", EventType.FESTIVAL)
     );
 
+    /** PRO.Культура.РФ category and tag names. */
+    private static final Map<String, EventType> CULTURE_RU_MAPPING = Map.ofEntries(
+            Map.entry("концерты", EventType.MUSIC),
+            Map.entry("концерт", EventType.MUSIC),
+            Map.entry("музыка", EventType.MUSIC),
+            Map.entry("спектакли", EventType.THEATER),
+            Map.entry("спектакль", EventType.THEATER),
+            Map.entry("театр", EventType.THEATER),
+            Map.entry("опера", EventType.THEATER),
+            Map.entry("балет", EventType.THEATER),
+            Map.entry("выставки", EventType.ART),
+            Map.entry("выставка", EventType.ART),
+            Map.entry("музеи", EventType.ART),
+            Map.entry("кино", EventType.CINEMA),
+            Map.entry("кинопоказы", EventType.CINEMA),
+            Map.entry("экскурсии", EventType.EXCURSION),
+            Map.entry("экскурсия", EventType.EXCURSION),
+            Map.entry("мастер-классы", EventType.MASTER_CLASS),
+            Map.entry("мастер-класс", EventType.MASTER_CLASS),
+            Map.entry("лекции", EventType.MASTER_CLASS),
+            Map.entry("фестивали", EventType.FESTIVAL),
+            Map.entry("праздники", EventType.FESTIVAL)
+    );
+
     private static final EventType FALLBACK = EventType.FESTIVAL;
 
     /**
@@ -116,6 +140,21 @@ public class CategoryMapper {
         }
 
         return firstMatch != null ? firstMatch : FALLBACK;
+    }
+
+    /** Maps PRO.Культура.РФ category/tag names to EventType (first known one wins). */
+    public EventType mapCultureRuCategories(List<String> categories) {
+        if (categories == null) {
+            return FALLBACK;
+        }
+        for (String category : categories) {
+            if (category == null) continue;
+            EventType mapped = CULTURE_RU_MAPPING.get(category.toLowerCase().trim());
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        return FALLBACK;
     }
 
     /**

@@ -29,6 +29,22 @@ public class ParserProperties {
         private TbankAfishaConfig tbankAfisha = new TbankAfishaConfig();
         private TickettoshowConfig tickettoshow = new TickettoshowConfig();
         private NovayaOperaConfig novayaOpera = new NovayaOperaConfig();
+        private CultureRuConfig cultureRu = new CultureRuConfig();
+    }
+
+    /**
+     * PRO.Культура.РФ — the official registry of Pushkin card events. The API needs a partner
+     * key (partners@team.culture.ru); the provider stays off while the key is empty.
+     */
+    @Data
+    public static class CultureRuConfig {
+        private boolean enabled = true;
+        private String baseUrl = "https://pro.culture.ru/api/2.5";
+        private String apiKey = "";
+        private List<String> cities = List.of("Москва", "Санкт-Петербург");
+        private int pageSize = 100;
+        private int maxPages = 20;
+        private long requestDelayMs = 500;
     }
 
     @Data

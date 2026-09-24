@@ -162,6 +162,8 @@ public class EventNormalizerService {
             return categoryMapper.mapTimepadCategories(raw.getRawCategories());
         } else if (raw.getSource() == EventSource.TICKETTOSHOW) {
             return categoryMapper.mapTickettoshowCategories(raw.getRawCategories());
+        } else if (raw.getSource() == EventSource.CULTURE_RU) {
+            return categoryMapper.mapCultureRuCategories(raw.getRawCategories());
         } else if (raw.getSource() == EventSource.YANDEX_AFISHA) {
             // Rubric codes from the URL (concert, theater, tour, балет, …) share KudaGo's vocabulary.
             return categoryMapper.mapKudaGoCategories(raw.getRawCategories());

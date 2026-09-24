@@ -58,6 +58,9 @@ parser:
       utm-query: ${TICKETTOSHOW_UTM_QUERY:}
       request-delay-ms: 300
       default-city: Москва
+    culture-ru:
+      enabled: ${CULTURE_RU_ENABLED:true}
+      api-key: ${CULTURE_RU_API_KEY:}
     novaya-opera:
       enabled: ${NOVAYA_OPERA_ENABLED:true}
       channel: ${NOVAYA_OPERA_CHANNEL:novayaopera}
