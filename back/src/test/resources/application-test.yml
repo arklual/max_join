@@ -22,3 +22,6 @@ join:
   jwt:
     secret: VGVzdFNlY3JldFRlc3RTZWNyZXRUZXN0U2VjcmV0VGVzdFNlY3JldA==
     ttl-days: 30
+
+parser:
+  run-on-startup-if-empty: false
