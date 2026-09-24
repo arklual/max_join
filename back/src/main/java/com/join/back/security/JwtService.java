@@ -3,14 +3,17 @@ package com.join.back.security;
 import com.join.back.config.JwtProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 
+@Slf4j
 @Service
 public class JwtService {
 
@@ -23,9 +26,17 @@ public class JwtService {
     public JwtService(JwtProperties properties, Clock clock) {
         this.properties = properties;
         this.clock = clock;
+        if (properties.secret() == null || properties.secret().isBlank()) {
+            // Local run without JWT_SECRET: an ephemeral key — sessions reset on restart.
+            log.warn("join.jwt.secret is not set — using a random key; set JWT_SECRET in production");
+            byte[] random = new byte[48];
+            new SecureRandom().nextBytes(random);
+            this.key = Keys.hmacShaKeyFor(random);
+            return;
+        }
         byte[] decoded;
         try {
-            decoded = Base64.getDecoder().decode(properties.secret() == null ? "" : properties.secret());
+            decoded = Base64.getDecoder().decode(properties.secret());
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException("join.jwt.secret must be Base64-encoded", e);
         }

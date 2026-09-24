@@ -52,4 +52,12 @@ class JwtServiceTest {
         assertThrows(IllegalStateException.class,
                 () -> new JwtService(new JwtProperties(tooShort, 30), FIXED_CLOCK));
     }
+
+    @Test
+    void blankSecretFallsBackToEphemeralKey() {
+        JwtService ephemeral = new JwtService(new JwtProperties("", 30), FIXED_CLOCK);
+        String token = ephemeral.issue(42L);
+        assertEquals(42L, ephemeral.verify(token));
+        assertThrows(RuntimeException.class, () -> service().verify(token));
+    }
 }

@@ -1,4 +1,17 @@
 services:
+  # Self-signed certificate for a local run; skipped when nginx/certs already has cert.crt + cert.key.
+  certs:
+    image: alpine:3.20
+    command: >
+      /bin/sh -c "[ -s /certs/cert.crt ] && [ -s /certs/cert.key ] && exit 0;
+      apk add --no-cache openssl >/dev/null &&
+      openssl req -x509 -newkey rsa:2048 -nodes -days 365 -subj /CN=$${DOMAIN:-localhost}
+      -keyout /certs/cert.key -out /certs/cert.crt"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./nginx/certs:/certs
+
   nginx:
     image: nginx:1.27-alpine
     command: >
@@ -8,13 +21,17 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      DOMAIN: ${DOMAIN}
+      DOMAIN: ${DOMAIN:-localhost}
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
-      - back
-      - front
+      certs:
+        condition: service_completed_successfully
+      back:
+        condition: service_started
+      front:
+        condition: service_started
     restart: unless-stopped
 
   postgres:
@@ -45,12 +62,12 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       MAX_BOT_TOKEN: ${MAX_BOT_TOKEN}
       MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
-      MAX_WEBHOOK_URL: ${MAX_WEBHOOK_URL:-https://${DOMAIN}}
+      MAX_WEBHOOK_URL: ${MAX_WEBHOOK_URL:-}
       MAX_WEBHOOK_SECRET: ${MAX_WEBHOOK_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
-      TELEGRAM_WEBAPP_URL: ${TELEGRAM_WEBAPP_URL:-https://${DOMAIN}}
-      TELEGRAM_WEBHOOK_URL: ${TELEGRAM_WEBHOOK_URL:-https://${DOMAIN}}
+      TELEGRAM_WEBAPP_URL: ${TELEGRAM_WEBAPP_URL:-https://${DOMAIN:-localhost}}
+      TELEGRAM_WEBHOOK_URL: ${TELEGRAM_WEBHOOK_URL:-https://${DOMAIN:-localhost}}
       TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.aiproductiv.ru/v1}
