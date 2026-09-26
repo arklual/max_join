@@ -1,6 +1,6 @@
 /**
  * "1 200 ₽", "Бесплатно" for a zero price, or '' when the price is unknown
- * (sources such as Yandex Afisha don't publish it) — callers hide the price then.
+ * — callers hide the price then.
  */
 export function formatPrice(price: number | string | null | undefined): string {
   if (price == null || price === '') return '';

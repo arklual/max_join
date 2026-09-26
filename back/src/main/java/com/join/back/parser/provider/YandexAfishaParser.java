@@ -16,8 +16,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,9 +71,11 @@ public class YandexAfishaParser implements EventProvider {
     private static final Pattern FIELD_ARGUMENT = Pattern.compile("\"argument\":\"((?:[^\"\\\\]|\\\\.)*)\"");
     private static final Pattern FIELD_IMAGE_URL = Pattern.compile(
             "\"image\\(\\{\\\\\"size\\\\\":\\\\\"s380x190_crop\\\\\"\\}\\)\":\\{\"__typename\":\"MediaImageSize\",\"url\":\"((?:[^\"\\\\]|\\\\.)*)\"");
-    private static final Pattern FIELD_PRICE_MIN = Pattern.compile(
-            "\"prices\":\\[\\{\"__typename\":\"Money\",\"currency\":\"rub\",\"value\":(\\d+)"
+    private static final Pattern FIELD_PRICES = Pattern.compile("\"prices\":\\[([^]]*)]");
+    private static final Pattern FIELD_MONEY_VALUE = Pattern.compile(
+            "\"__typename\":\"Money\",\"currency\":\"rub\",\"value\":(\\d+)"
     );
+    private static final String ACTUAL_EVENT_MARKER = "\"__typename\":\"ActualEvent\"";
     private static final Pattern FIELD_TAG_CODE = Pattern.compile(
             "\"__typename\":\"Tag\",\"code\":\"([^\"]+)\""
     );
@@ -262,11 +266,31 @@ public class YandexAfishaParser implements EventProvider {
      * 1. Find all ActualEvent blocks → get EventPreview IDs and dates
      * 2. For each EventPreview ID, extract its block and parse fields
      */
-    private List<RawExternalEvent> parseApolloState(String script, String citySlug, String baseUrl) {
+    /** Lowest ticket price in rubles from a {@code "prices":[Money…]} list (values are in kopecks). */
+    static BigDecimal extractMinPrice(String fragment) {
+        Matcher listMatcher = FIELD_PRICES.matcher(fragment);
+        if (!listMatcher.find()) {
+            return null;
+        }
+        Matcher valueMatcher = FIELD_MONEY_VALUE.matcher(listMatcher.group(1));
+        Long min = null;
+        while (valueMatcher.find()) {
+            long kopecks = Long.parseLong(valueMatcher.group(1));
+            if (min == null || kopecks < min) {
+                min = kopecks;
+            }
+        }
+        return min == null ? null : BigDecimal.valueOf(min).divide(BigDecimal.valueOf(100));
+    }
+
+    List<RawExternalEvent> parseApolloState(String script, String citySlug, String baseUrl) {
         List<RawExternalEvent> events = new ArrayList<>();
 
-        // Step 1: extract (eventId → firstDate) from ActualEvent blocks
+        // Step 1: extract (eventId → firstDate, prices) from ActualEvent blocks.
+        // Prices and the Pushkin-card flag live in scheduleInfo, not in EventPreview.
         Map<String, String> eventIdToFirstDate = new HashMap<>();
+        Map<String, BigDecimal> eventIdToMinPrice = new HashMap<>();
+        Set<String> pushkinEventIds = new HashSet<>();
         Matcher actualMatcher = ACTUAL_EVENT_PATTERN.matcher(script);
         while (actualMatcher.find()) {
             String eventId = actualMatcher.group(1);
@@ -274,6 +298,15 @@ public class YandexAfishaParser implements EventProvider {
             String firstDate = extractFirstDate(datesRaw);
             if (firstDate != null) {
                 eventIdToFirstDate.put(eventId, firstDate);
+            }
+            int scheduleEnd = script.indexOf(ACTUAL_EVENT_MARKER, actualMatcher.end());
+            String schedule = script.substring(actualMatcher.end(), scheduleEnd < 0 ? script.length() : scheduleEnd);
+            BigDecimal minPrice = extractMinPrice(schedule);
+            if (minPrice != null) {
+                eventIdToMinPrice.put(eventId, minPrice);
+            }
+            if (schedule.contains("\"pushkinCardAllowed\":true")) {
+                pushkinEventIds.add(eventId);
             }
         }
 
@@ -302,6 +335,14 @@ public class YandexAfishaParser implements EventProvider {
 
                 RawExternalEvent event = parseEventPreviewBlock(eventId, block, firstDate, cityName, baseUrl);
                 if (event != null) {
+                    BigDecimal schedulePrice = eventIdToMinPrice.get(eventId);
+                    if (event.getMinPrice() == null && schedulePrice != null) {
+                        event.setMinPrice(schedulePrice);
+                        event.setRawPrice("от " + schedulePrice.longValue() + " руб.");
+                    }
+                    if (pushkinEventIds.contains(eventId)) {
+                        event.setPushkinCard(true);
+                    }
                     events.add(event);
                 }
             } catch (Exception e) {
@@ -390,14 +431,8 @@ public class YandexAfishaParser implements EventProvider {
         }
 
         // Price: Yandex stores prices in kopecks, convert to rubles
-        String rawPrice = null;
-        BigDecimal minPrice = null;
-        Matcher priceMatcher = FIELD_PRICE_MIN.matcher(block);
-        if (priceMatcher.find()) {
-            long kopecks = Long.parseLong(priceMatcher.group(1));
-            minPrice = BigDecimal.valueOf(kopecks).divide(BigDecimal.valueOf(100));
-            rawPrice = "от " + minPrice.longValue() + " руб.";
-        }
+        BigDecimal minPrice = extractMinPrice(block);
+        String rawPrice = minPrice == null ? null : "от " + minPrice.longValue() + " руб.";
 
         // Categories: the rubric from the event URL (/city/<rubric>/slug) is the most
         // reliable signal, selection pages often carry no genre tags at all.
