@@ -117,50 +117,49 @@ GET /events/?fields=id,title,description,categories,dates,price,images,location,
 
 ---
 
-### 3.2 Timepad API (требует токен)
+### 3.2 Timepad (афиша afisha.timepad.ru)
+
+Официальный API `api.timepad.ru/v1` требует OAuth-токен, поэтому берём данные так же, как их берёт
+сайт афиши — из его публичного JSON API. Токен не нужен.
 
 | Параметр | Значение |
 |----------|----------|
-| **Базовый URL** | `https://api.timepad.ru/v1` |
-| **Endpoint событий** | `GET /events` |
-| **Авторизация** | Bearer token (`Authorization: Bearer {TOKEN}`) |
-| **Rate limit** | Документирован; рекомендуется ≤ 5 req/s |
-| **Пагинация** | `skip` + `limit` (max 100) |
-| **Формат** | JSON |
+| **Базовый URL** | `https://ontp.timepad.ru/api` |
+| **Город** | `GET /dictionaries/filters-cities?countryId=3159&name=Москва` → `cities[].id` (Москва — 4400) |
+| **Endpoint событий** | `GET /events?cityId={id}&limit=100&registrationOpened=1` |
+| **Пагинация** | курсор: ответ содержит `data.offset` (`[sortKey, id]`), следующая страница — `&offset[]=…&offset[]=…` |
+| **Заголовки** | `Origin`/`Referer: https://afisha.timepad.ru` |
 
-> ⚠️ **Требуется:** зарегистрировать приложение на https://dev.timepad.ru и получить OAuth2 токен. Хранить в `application.yml` как `parser.timepad.token`.
-
-**Параметры запроса:**
-
-```
-GET /events?limit=100&skip=0
-  &starts_at_min={ISO_8601}
-  &cities={city_name}
-  &fields=id,name,description_short,starts_at,ends_at,url,poster_image,location,min_price,max_price,categories
-```
-
-**Структура ответа (ожидаемая):**
+**Структура ответа:**
 
 ```json
 {
-  "total": 5000,
-  "values": [
-    {
-      "id": 123456,
-      "name": "Название",
-      "description_short": "Краткое описание",
-      "starts_at": "2026-04-15T19:00:00+03:00",
-      "ends_at": "2026-04-15T22:00:00+03:00",
-      "url": "https://event.timepad.ru/...",
-      "poster_image": { "default_url": "https://..." },
-      "location": { "city": "Москва", "address": "..." },
-      "min_price": 0,
-      "max_price": 2500,
-      "categories": [{ "id": 452, "name": "Бизнес" }]
-    }
-  ]
+  "result": "ok",
+  "data": {
+    "total": 1487,
+    "offset": [1790344800000, "3823594"],
+    "events": [
+      {
+        "id": 4199210,
+        "name": "Название",
+        "shortDescription": "Кратко",
+        "description": "<p>HTML</p>",
+        "online": false,
+        "address": { "city": "Москва", "cityAlias": "moscow" },
+        "categories": [{ "id": 379, "name": "Концерты" }],
+        "sessions": [{ "startDate": "2026-09-27 12:00:00", "minPrice": 1000, "maxPrice": 1000 }],
+        "computed": { "startDate": "2026-09-27 12:00:00", "minPrice": 1000 },
+        "poster": "https://ucare.timepad.ru/...",
+        "slug": "nazvanie-4199210"
+      }
+    ]
+  }
 }
 ```
+
+На Timepad много бизнес-встреч и курсов — берём только досуговые категории (концерты, театры, кино,
+выставки, искусство и культура, экскурсии, хобби, спорт, интеллектуальные игры, еда, наука, вечеринки,
+другие развлечения); события «Для детей» и «Бизнес» и онлайн-события отбрасываются.
 
 ---
 
@@ -258,15 +257,14 @@ GET /api/2.0/events?limit=100&offset=0&start={ISO_date}&status=accepted&locale={
 
 | Поле Event | Источник Timepad | Трансформация |
 |------------|-----------------|---------------|
-| `title` | `name` | Прямое (truncate 255) |
-| `description` | `description_short` | Прямое |
-| `type` | `categories[0].name` | Маппинг через таблицу категорий (§4.4) |
-| `image_url` | `poster_image.default_url` | Прямое (URL) |
-| `price` | `min_price` | Число; 0 = бесплатно |
-| `event_date` | `starts_at` | ISO 8601 → LocalDate |
-| `event_time` | `starts_at` | ISO 8601 → LocalTime |
-| `ticket_url` | `url` | Прямое |
-| `city` | `location.city` | Прямое (нормализовать регистр) |
+| `title` | `name` | Схлопнуть пробелы, truncate 255 |
+| `description` | `shortDescription` / `description` | Без HTML, до 1000 символов |
+| `type` | `categories[].name` | Маппинг через таблицу категорий (§4.4) |
+| `image_url` | `poster` | Прямое (URL) |
+| `price` | `sessions[].minPrice` | Ближайший сеанс; 0 = бесплатно |
+| `event_date` / `event_time` | `sessions[].startDate` | Ближайший сеанс, начинающийся сегодня или позже |
+| `ticket_url` | `address.cityAlias` + `slug` | `https://afisha.timepad.ru/{cityAlias}/events/{slug}` |
+| `city` | `address.city` | Прямое |
 | `created_at` | — | `LocalDateTime.now()` |
 
 ### 4.3 Telegram → Event
@@ -510,11 +508,12 @@ parser:
       request-delay-ms: 500
     timepad:
       enabled: true
-      base-url: https://api.timepad.ru/v1
-      token: ${TIMEPAD_API_TOKEN}
+      base-url: https://ontp.timepad.ru/api
+      afisha-url: https://afisha.timepad.ru
+      cities: [Москва, Санкт-Петербург]
       limit: 100
-      max-pages: 50
-      request-delay-ms: 200
+      max-pages: 15
+      request-delay-ms: 300
     telegram:
       enabled: false        # Phase 2
       bot-token: ${TELEGRAM_BOT_TOKEN}
@@ -710,7 +709,6 @@ implementation 'org.apache.commons:commons-text:1.12.0'  // LevenshteinDistance 
 
 | Переменная | Описание | Обязательная |
 |-----------|----------|:---:|
-| `TIMEPAD_API_TOKEN` | OAuth2 токен Timepad | Для Phase 2 |
 | `TELEGRAM_BOT_TOKEN` | Токен Telegram-бота | Для Phase 3 |
 | `CULTURE_RU_API_KEY` | API-ключ culture.ru | Для Phase 3 |
 

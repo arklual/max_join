@@ -30,6 +30,26 @@ public class ParserProperties {
         private TickettoshowConfig tickettoshow = new TickettoshowConfig();
         private NovayaOperaConfig novayaOpera = new NovayaOperaConfig();
         private CultureRuConfig cultureRu = new CultureRuConfig();
+        private EngineerHistoryConfig engineerHistory = new EngineerHistoryConfig();
+    }
+
+    /** «Москва/Питер глазами инженера» — excursion agency; its day afisha pages are parsed. */
+    @Data
+    public static class EngineerHistoryConfig {
+        private boolean enabled = true;
+        private List<Site> sites = List.of(
+                new Site("https://engineer-history.ru", "Москва"),
+                new Site("https://spb.engineer-history.ru", "Санкт-Петербург"));
+        private int daysAhead = 21;
+        private long requestDelayMs = 500;
+
+        @Data
+        @lombok.NoArgsConstructor
+        @lombok.AllArgsConstructor
+        public static class Site {
+            private String url;
+            private String city;
+        }
     }
 
     /**
@@ -58,13 +78,17 @@ public class ParserProperties {
     }
 
     @Data
+    /** Public Timepad afisha (afisha.timepad.ru) — the same JSON API its site uses, no token needed. */
     public static class TimepadConfig {
-        private boolean enabled = false;
-        private String baseUrl = "https://api.timepad.ru/v1";
-        private String token = "";
+        private boolean enabled = true;
+        private String baseUrl = "https://ontp.timepad.ru/api";
+        private String afishaUrl = "https://afisha.timepad.ru";
+        private List<String> cities = List.of("Москва", "Санкт-Петербург");
+        /** Organizers taken in full, whatever the category (e.g. 254491 — «Москва в сердце», excursions). */
+        private List<Long> organizations = List.of(254491L);
         private int limit = 100;
-        private int maxPages = 50;
-        private long requestDelayMs = 200;
+        private int maxPages = 15;
+        private long requestDelayMs = 300;
     }
 
     @Data
