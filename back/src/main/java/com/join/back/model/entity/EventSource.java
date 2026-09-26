@@ -8,5 +8,6 @@ public enum EventSource {
     CULTURE_RU,
     YANDEX_AFISHA,
     TBANK_AFISHA,
-    TICKETTOSHOW
+    TICKETTOSHOW,
+    ENGINEER_HISTORY
 }
