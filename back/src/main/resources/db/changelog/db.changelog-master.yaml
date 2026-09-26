@@ -81,3 +81,7 @@ databaseChangeLog:
       file: db/changelog/042-add-pushkin-card-to-events.yaml
   - include:
       file: db/changelog/043-more-universities-and-cities.yaml
+  - include:
+      file: db/changelog/044-add-group-to-notifications.yaml
+  - include:
+      file: db/changelog/045-create-user-blocks-table.yaml

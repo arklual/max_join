@@ -40,6 +40,8 @@ import LinkifiedText from '../components/LinkifiedText';
 import { isMaxApp, isMessengerApp, setAuthToken } from '../api/platform';
 import MaxLinkCard from '../components/MaxLinkCard';
 import PushkinCardInfo from '../components/PushkinCardInfo';
+import BlockedUsersCard from '../components/BlockedUsersCard';
+import { isPushkinEligible, rememberProfileAge } from '../utils/pushkin';
 import { ThemeModeContext } from '../theme/M3/providers/ThemeModeProvider';
 import SettingsBrightnessOutlined from '@mui/icons-material/SettingsBrightnessOutlined';
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
@@ -120,6 +122,7 @@ export default function ProfileScreen() {
     try {
       const response = await apiClient.get<UserProfile>('/users/me/profile');
       setProfile(response.data);
+      rememberProfileAge(response.data.age);
     } catch {
       setError('Не удалось загрузить профиль.');
     } finally {
@@ -238,6 +241,7 @@ export default function ProfileScreen() {
       });
 
       setProfile(response.data);
+      rememberProfileAge(response.data.age);
       setEditMode(false);
       setEditData(null);
       if (photoPreview) {
@@ -692,7 +696,7 @@ export default function ProfileScreen() {
       )}
 
       {/* Pushkin card: ages 14–22 get 5 000 ₽ a year for culture — lives in MAX */}
-      {profile.age >= 14 && profile.age <= 22 && (
+      {isPushkinEligible(profile.age) && (
         <Box sx={{ mb: 2 }}>
           <PushkinCardInfo variant="promo" />
         </Box>
@@ -712,6 +716,10 @@ export default function ProfileScreen() {
           defaultEmail={profile.email ?? ''}
           onLinked={() => loadProfile()}
         />
+      </Box>
+
+      <Box sx={{ mb: 3, '&:empty': { display: 'none' } }}>
+        <BlockedUsersCard />
       </Box>
 
       {/* Edit Button */}

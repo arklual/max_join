@@ -36,6 +36,7 @@ public class MatchService {
     private final ChatService chatService;
     private final NotificationService notificationService;
     private final MessengerNotificationService messengerNotificationService;
+    private final UserBlockService userBlockService;
 
     @Transactional(transactionManager = "transactionManager")
     public List<Match> checkAndCreateMatch(Long userId, Long eventId) {
@@ -49,9 +50,11 @@ public class MatchService {
         Event event = eventRepository.findById(eventId).orElse(null);
         String eventTitle = event != null ? event.getTitle() : "мероприятие";
 
+        java.util.Set<Long> blocked = userBlockService.relatedUserIds(userId);
         List<Long> otherUserIds = allLikes.stream()
                 .map(EventLike::getUserId)
                 .filter(id -> !id.equals(userId))
+                .filter(id -> !blocked.contains(id))
                 .toList();
 
         if (otherUserIds.isEmpty()) {

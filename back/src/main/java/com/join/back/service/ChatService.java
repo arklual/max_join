@@ -36,6 +36,7 @@ public class ChatService {
     private final EventRepository eventRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final MessengerNotificationService messengerNotificationService;
+    private final UserBlockService userBlockService;
 
     @Transactional(transactionManager = "transactionManager")
     public Chat createChat(Long matchId, Long user1Id, Long user2Id, Long eventId) {
@@ -96,7 +97,8 @@ public class ChatService {
                             chat.getEventId(),
                             lastMessage != null ? lastMessage.getText() : null,
                             lastMessage != null ? lastMessage.getCreatedAt() : null,
-                            unreadCount
+                            unreadCount,
+                            blockStatus(userId, companionId)
                     );
                 })
                 .sorted(Comparator.comparing(ChatResponse::lastMessageTime,
@@ -134,6 +136,15 @@ public class ChatService {
                 .orElseThrow(() -> new EntityNotFoundException("Chat not found with id: " + chatId));
 
         verifyAccess(chat, senderId);
+
+        Long otherId = chat.getUser1Id().equals(senderId) ? chat.getUser2Id() : chat.getUser1Id();
+        String blockStatus = blockStatus(senderId, otherId);
+        if ("BLOCKED_BY_ME".equals(blockStatus)) {
+            throw new UserActionException("Этот человек в твоём чёрном списке — разблокируй, чтобы написать");
+        }
+        if ("BLOCKED_ME".equals(blockStatus)) {
+            throw new UserActionException("Собеседник ограничил переписку с тобой");
+        }
 
         ChatMessage message = ChatMessage.builder()
                 .chatId(chatId)
@@ -201,6 +212,12 @@ public class ChatService {
             chat.setUser2DeletedAt(LocalDateTime.now());
         }
         chatRepository.save(chat);
+    }
+
+    private String blockStatus(Long userId, Long companionId) {
+        if (userBlockService.hasBlocked(userId, companionId)) return "BLOCKED_BY_ME";
+        if (userBlockService.hasBlocked(companionId, userId)) return "BLOCKED_ME";
+        return null;
     }
 
     private void verifyAccess(Chat chat, Long userId) {

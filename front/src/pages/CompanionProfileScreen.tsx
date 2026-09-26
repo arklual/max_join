@@ -3,8 +3,10 @@ import { useParams, useNavigate } from 'react-router';
 import apiClient from '../api/client';
 import { mediaUrl } from '../api/platform';
 import { INTEREST_LABELS } from '../types';
-import type { CompanionProfile, Chat } from '../types';
+import type { BlockStatus, CompanionProfile, Chat } from '../types';
 import LinkifiedText from '../components/LinkifiedText';
+import BlockUserDialog from '../components/BlockUserDialog';
+import BlockOutlined from '@mui/icons-material/BlockOutlined';
 import ChatBubbleOutlineOutlined from '@mui/icons-material/ChatBubbleOutlineOutlined';
 
 import Box from '@mui/material/Box';
@@ -40,6 +42,15 @@ export default function CompanionProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chatId, setChatId] = useState<number | null>(null);
+  const [blockStatus, setBlockStatus] = useState<BlockStatus | null>(null);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+
+  useEffect(() => {
+    apiClient
+      .get<BlockStatus>(`/users/${userId}/block`)
+      .then((res) => setBlockStatus(res.data))
+      .catch(() => {});
+  }, [userId]);
 
   useEffect(() => {
     // Offer a shortcut to the existing 1:1 chat with this person, if any.
@@ -156,7 +167,7 @@ export default function CompanionProfileScreen() {
               {profile.status}
             </Typography>
           )}
-          {chatId != null && (
+          {chatId != null && !blockStatus?.blockedByMe && !blockStatus?.blockedMe && (
             <Button
               variant="filled"
               startIcon={<ChatBubbleOutlineOutlined />}
@@ -218,7 +229,29 @@ export default function CompanionProfileScreen() {
             </Box>
           </Box>
         )}
+
+        {blockStatus && (
+          <Button
+            variant="text"
+            color={blockStatus.blockedByMe ? 'primary' : 'error'}
+            startIcon={<BlockOutlined />}
+            onClick={() => setShowBlockDialog(true)}
+            sx={{ textTransform: 'none', alignSelf: 'center', display: 'flex', mx: 'auto', mb: 2 }}
+          >
+            {blockStatus.blockedByMe ? 'Разблокировать' : 'Заблокировать'}
+          </Button>
+        )}
       </Box>
+
+      {showBlockDialog && profile && blockStatus && (
+        <BlockUserDialog
+          userId={Number(userId)}
+          name={profile.firstName}
+          blockedByMe={blockStatus.blockedByMe}
+          onClose={() => setShowBlockDialog(false)}
+          onChanged={setBlockStatus}
+        />
+      )}
     </Box>
   );
 }

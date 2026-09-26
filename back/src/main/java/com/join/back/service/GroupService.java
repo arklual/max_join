@@ -50,6 +50,7 @@ public class GroupService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final MessengerNotificationService messengerNotificationService;
+    private final UserBlockService userBlockService;
 
     @Transactional(transactionManager = "transactionManager")
     public GroupResponse createGroup(Long userId, Long eventId, CreateGroupRequest request) {
@@ -121,6 +122,12 @@ public class GroupService {
                 .existsActiveGroupMemberByEventIdAndUserId(group.getEventId(), userId);
         if (alreadyInEventGroup) {
             throw new UserActionException("Ты уже в компании на это событие");
+        }
+
+        java.util.Set<Long> blocked = userBlockService.relatedUserIds(userId);
+        if (!blocked.isEmpty() && groupMemberRepository.findByGroupIdAndStatus(groupId, GroupMemberStatus.ACTIVE).stream()
+                .anyMatch(m -> blocked.contains(m.getUserId()))) {
+            throw new UserActionException("Не получится вступить: в этой компании человек из чёрного списка");
         }
 
         LocalDateTime now = LocalDateTime.now();

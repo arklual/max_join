@@ -31,6 +31,8 @@ export interface Chat {
   lastMessage: string | null;
   lastMessageTime: string | null;
   unreadCount: number;
+  /** Personal black list between the two, if any. */
+  blockStatus: 'BLOCKED_BY_ME' | 'BLOCKED_ME' | null;
 }
 
 export interface ChatMessage {
@@ -289,6 +291,15 @@ export interface GroupResponse {
   createdAt: string;
 }
 
+export type GroupInviteStatus = 'AVAILABLE' | 'INVITED' | 'IN_GROUP' | 'BUSY';
+
+export interface GroupInviteCandidate {
+  userId: number;
+  firstName: string;
+  photo: string | null;
+  status: GroupInviteStatus;
+}
+
 export interface JoinGroupResponse {
   groupId: number;
   groupChatId: number;
@@ -379,6 +390,20 @@ export interface AppNotification {
   eventId: number | null;
   eventTitle: string | null;
   chatId: number | null;
+  groupId: number | null;
   read: boolean;
   createdAt: string;
+}
+
+export interface BlockStatus {
+  userId: number;
+  blockedByMe: boolean;
+  blockedMe: boolean;
+}
+
+export interface BlockedUser {
+  userId: number;
+  firstName: string | null;
+  photo: string | null;
+  blockedAt: string;
 }

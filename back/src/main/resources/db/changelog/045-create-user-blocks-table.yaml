@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: 045-create-user-blocks-table
+      author: join-team
+      comment: Personal black list — a blocked user can't write to or match with the blocker.
+      changes:
+        - createTable:
+            tableName: user_blocks
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: blocker_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_user_blocks_blocker_id
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: blocked_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_user_blocks_blocked_id
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: user_blocks
+            columnNames: blocker_id, blocked_id
+            constraintName: uq_user_blocks_pair
+        - createIndex:
+            tableName: user_blocks
+            indexName: idx_user_blocks_blocked_id
+            columns:
+              - column:
+                  name: blocked_id

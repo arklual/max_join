@@ -71,6 +71,9 @@ class MatchServiceTest {
     @Mock
     private MessengerNotificationService messengerNotificationService;
 
+    @Mock
+    private UserBlockService userBlockService;
+
     @InjectMocks
     private MatchService matchService;
 

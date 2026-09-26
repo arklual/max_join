@@ -67,6 +67,9 @@ class GroupServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
+    @Mock
+    private UserBlockService userBlockService;
+
     @InjectMocks
     private GroupService groupService;
 

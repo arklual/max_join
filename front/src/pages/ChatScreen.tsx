@@ -10,6 +10,7 @@ import type { Chat, ChatMessage, PageResponse, IceBreakerResponse } from '../typ
 import { formatTime, formatDateSeparator, getDateKey } from '../utils/dateUtils';
 import IceBreakerSection from '../components/IceBreakerSection';
 import ChatInput from '../components/ChatInput';
+import BlockUserDialog from '../components/BlockUserDialog';
 import {
   AppBar,
   Toolbar,
@@ -23,7 +24,10 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { ArrowBackOutlined, ConfirmationNumberOutlined } from '@mui/icons-material';
+import { ArrowBackOutlined, ConfirmationNumberOutlined, MoreVertOutlined, BlockOutlined } from '@mui/icons-material';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
 
 export default function ChatScreen() {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +43,8 @@ export default function ChatScreen() {
   const [sendError, setSendError] = useState('');
   const [iceBreaker, setIceBreaker] = useState<IceBreakerResponse | null>(null);
   const [iceBreakerLoading, setIceBreakerLoading] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -153,9 +159,10 @@ export default function ChatScreen() {
         if (prev.some((m) => m.id === response.data.id)) return prev;
         return [...prev, response.data];
       });
-    } catch {
+    } catch (err: unknown) {
       setInputText(trimmed);
-      setSendError('Не удалось отправить сообщение');
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setSendError(message ?? 'Не удалось отправить сообщение');
     } finally {
       setSending(false);
       inputRef.current?.focus();
@@ -225,6 +232,27 @@ export default function ChatScreen() {
           <Typography sx={{ fontWeight: 600 }}>
             {loading ? 'Загрузка...' : 'Ошибка'}
           </Typography>
+        )}
+        {chat && (
+          <>
+            <IconButton edge="end" aria-label="Ещё" onClick={(e) => setMenuAnchor(e.currentTarget)}>
+              <MoreVertOutlined />
+            </IconButton>
+            <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}>
+              <MenuItem
+                onClick={() => {
+                  setMenuAnchor(null);
+                  setShowBlockDialog(true);
+                }}
+                sx={{ color: chat.blockStatus === 'BLOCKED_BY_ME' ? undefined : 'error.main' }}
+              >
+                <ListItemIcon sx={{ color: 'inherit' }}>
+                  <BlockOutlined fontSize="small" />
+                </ListItemIcon>
+                {chat.blockStatus === 'BLOCKED_BY_ME' ? 'Разблокировать' : 'Заблокировать'}
+              </MenuItem>
+            </Menu>
+          </>
         )}
       </Toolbar>
     </AppBar>
@@ -339,15 +367,58 @@ export default function ChatScreen() {
         <div ref={messagesEndRef} />
       </Box>
 
-      <ChatInput
-        ref={inputRef}
-        value={inputText}
-        onChange={setInputText}
-        onSend={handleSend}
-        disabled={sending}
-        error={sendError}
-        onErrorClose={() => setSendError('')}
-      />
+      {chat?.blockStatus ? (
+        <Box
+          sx={{
+            px: 2,
+            py: 1.5,
+            pb: 'calc(12px + var(--safe-area-bottom, 0px))',
+            borderTop: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            flexShrink: 0,
+          }}
+        >
+          <BlockOutlined sx={{ color: 'onSurfaceVariant.main' }} />
+          <Typography variant="body2" sx={{ flex: 1, color: 'onSurfaceVariant.main' }}>
+            {chat.blockStatus === 'BLOCKED_BY_ME'
+              ? 'Собеседник в вашем чёрном списке'
+              : 'Собеседник ограничил переписку с вами'}
+          </Typography>
+          {chat.blockStatus === 'BLOCKED_BY_ME' && (
+            <Button size="small" onClick={() => setShowBlockDialog(true)} sx={{ textTransform: 'none', flexShrink: 0 }}>
+              Разблокировать
+            </Button>
+          )}
+        </Box>
+      ) : (
+        <ChatInput
+          ref={inputRef}
+          value={inputText}
+          onChange={setInputText}
+          onSend={handleSend}
+          disabled={sending}
+          error={sendError}
+          onErrorClose={() => setSendError('')}
+        />
+      )}
+
+      {showBlockDialog && chat && (
+        <BlockUserDialog
+          userId={chat.companionId}
+          name={chat.companionName}
+          blockedByMe={chat.blockStatus === 'BLOCKED_BY_ME'}
+          onClose={() => setShowBlockDialog(false)}
+          onChanged={(status) =>
+            setChat((prev) => prev && {
+              ...prev,
+              blockStatus: status.blockedByMe ? 'BLOCKED_BY_ME' : status.blockedMe ? 'BLOCKED_ME' : null,
+            })
+          }
+        />
+      )}
     </Box>
   );
 }

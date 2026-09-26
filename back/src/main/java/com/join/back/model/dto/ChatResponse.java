@@ -11,6 +11,8 @@ public record ChatResponse(
         Long eventId,
         String lastMessage,
         LocalDateTime lastMessageTime,
-        long unreadCount
+        long unreadCount,
+        /** BLOCKED_BY_ME, BLOCKED_ME or null — personal black list between the two. */
+        String blockStatus
 ) {
 }

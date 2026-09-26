@@ -58,6 +58,9 @@ class ChatServiceTest {
     @Mock
     private SimpMessagingTemplate messagingTemplate;
 
+    @Mock
+    private UserBlockService userBlockService;
+
     @InjectMocks
     private ChatService chatService;
 
@@ -121,6 +124,18 @@ class ChatServiceTest {
         assertEquals(1, result.size());
         assertEquals("Jane", result.get(0).companionName());
         assertEquals("Concert", result.get(0).eventTitle());
+    }
+
+    @Test
+    void blockedUserCannotWriteToBlocker() {
+        Chat chat = Chat.builder().id(1L).user1Id(1L).user2Id(2L).eventId(10L).matchId(100L)
+                .createdAt(FIXED_CREATED_AT).build();
+        when(chatRepository.findById(1L)).thenReturn(Optional.of(chat));
+        org.mockito.Mockito.lenient().when(userBlockService.hasBlocked(1L, 2L)).thenReturn(true);
+
+        org.junit.jupiter.api.Assertions.assertThrows(UserActionException.class,
+                () -> chatService.sendMessage(1L, 2L, "Привет"));
+        org.mockito.Mockito.verify(chatMessageRepository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test
