@@ -28,6 +28,8 @@ public class RawExternalEvent {
     private LocalTime eventTime;
     private String ticketUrl;
     private String city;
+    /** Text the organizer wrote in normal case (full description) — used to fix all-caps titles. */
+    private String titleContext;
     /** Listed in a Pushkin-card selection of the source. */
     private boolean pushkinCard;
 }

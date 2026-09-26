@@ -74,7 +74,8 @@ public class EventNormalizerService {
         Set<Tag> tags = buildTags(raw, type);
 
         return Event.builder()
-                .title(raw.getTitle())
+                .title(TitleCaseNormalizer.normalize(raw.getTitle(),
+                        raw.getTitleContext() != null ? raw.getTitleContext() : raw.getDescription()))
                 .description(raw.getDescription())
                 .type(type)
                 .imageUrl(raw.getImageUrl())
@@ -167,6 +168,10 @@ public class EventNormalizerService {
         } else if (raw.getSource() == EventSource.YANDEX_AFISHA) {
             // Rubric codes from the URL (concert, theater, tour, балет, …) share KudaGo's vocabulary.
             return categoryMapper.mapKudaGoCategories(raw.getRawCategories());
+        } else if (raw.getSource() == EventSource.ENGINEER_HISTORY) {
+            // Walking tours; "Лекция + дегустация" evenings are lectures.
+            return raw.getTitle() != null && raw.getTitle().toLowerCase().contains("лекци")
+                    ? EventType.MASTER_CLASS : EventType.EXCURSION;
         } else if (raw.getSource() == EventSource.TELEGRAM) {
             List<String> categories = raw.getRawCategories();
             if (categories != null) {
@@ -191,7 +196,7 @@ public class EventNormalizerService {
     private EventStatus determineStatus(RawExternalEvent raw) {
         EventSource source = raw.getSource();
         return switch (source) {
-            case KUDAGO, TIMEPAD, CULTURE_RU, YANDEX_AFISHA, TBANK_AFISHA, TICKETTOSHOW -> EventStatus.ACTIVE;
+            case KUDAGO, TIMEPAD, CULTURE_RU, YANDEX_AFISHA, TBANK_AFISHA, TICKETTOSHOW, ENGINEER_HISTORY -> EventStatus.ACTIVE;
             case TELEGRAM -> raw.getStudentPromoCode() != null && !raw.getStudentPromoCode().isBlank()
                     ? EventStatus.ACTIVE
                     : EventStatus.NEEDS_REVIEW;
