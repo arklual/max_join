@@ -110,7 +110,7 @@ public class MaxWebhookController {
                 return;
             }
         }
-        sendStartMessage(chatId);
+        sendStartMessage(chatId, maxUserId == 0 || pushkinPicksService.appliesToMaxUser(maxUserId));
     }
 
     private void handleLogin(long chatId, long maxUserId, String token) {
@@ -145,31 +145,40 @@ public class MaxWebhookController {
         log.info("MAX link attempt for MAX user {}: {}", maxUserId, outcome.result());
     }
 
-    private void sendStartMessage(long chatId) {
+    private void sendStartMessage(long chatId, boolean showPushkin) {
         String welcomeText = """
                 👋 Привет! Это JOIN — здесь находят, с кем сходить на концерт, спектакль или выставку.
 
                 Как это работает:
                 1. Открой афишу и лайкни события, на которые хочешь пойти.
                 2. Когда на то же событие захочет кто-то ещё, я пришлю тебе напарника.
-                3. Договоритесь в чате — а накануне я напомню о встрече.
+                3. Договоритесь в чате — а накануне я напомню о встрече.""";
+        List<List<Map<String, Object>>> keyboard = new ArrayList<>();
+        keyboard.add(List.of(MaxBotApiClient.openAppButton("🚀 Открыть афишу", maxBotInfoService.getUsername(), null)));
+        if (showPushkin) {
+            welcomeText += "\n\n🎭 Тебе 14–22? Отмечаем события, которые можно оплатить Пушкинской картой.";
+            keyboard.add(List.of(MaxBotApiClient.openAppButton("🎭 По Пушкинской карте", maxBotInfoService.getUsername(),
+                    DeepLinks.PUSHKIN)));
+        }
 
-                🎭 Тебе 14–22? Отмечаем события, которые можно оплатить Пушкинской картой.""";
-
-        maxBotApiClient.sendMessageToChat(chatId, welcomeText, null, List.of(
-                List.of(MaxBotApiClient.openAppButton("🚀 Открыть афишу", maxBotInfoService.getUsername(), null)),
-                List.of(MaxBotApiClient.openAppButton("🎭 По Пушкинской карте", maxBotInfoService.getUsername(),
-                        DeepLinks.PUSHKIN))
-        ));
+        maxBotApiClient.sendMessageToChat(chatId, welcomeText, null, keyboard);
         log.info("Sent welcome message to chat {}", chatId);
     }
+
+    static final String PUSHKIN_NOT_ELIGIBLE = "Пушкинская карта действует с 14 до 22 лет, поэтому подборку по ней не показываю. "
+            + "Зато в афише полно всего остального 👇";
 
     private static final DateTimeFormatter PICK_DATE = DateTimeFormatter.ofPattern("d MMMM", Locale.forLanguageTag("ru"));
     private static final DateTimeFormatter PICK_TIME = DateTimeFormatter.ofPattern("HH:mm");
 
     private void sendPushkinPicks(long chatId, long maxUserId) {
-        PushkinPicksService.Picks picks = pushkinPicksService.forMaxUser(maxUserId);
         String bot = maxBotInfoService.getUsername();
+        if (!pushkinPicksService.appliesToMaxUser(maxUserId)) {
+            maxBotApiClient.sendMessageToChat(chatId, PUSHKIN_NOT_ELIGIBLE, null,
+                    List.of(List.of(MaxBotApiClient.openAppButton("🚀 Открыть афишу", bot, null))));
+            return;
+        }
+        PushkinPicksService.Picks picks = pushkinPicksService.forMaxUser(maxUserId);
         if (picks.events().isEmpty()) {
             maxBotApiClient.sendMessageToChat(chatId,
                     "Пока нет ближайших событий по Пушкинской карте — загляни в афишу чуть позже.", null,
@@ -190,6 +199,10 @@ public class MaxWebhookController {
             }
             if (picks.city() == null && event.getCity() != null) {
                 text.append(" (").append(MessengerHtml.escape(event.getCity())).append(")");
+            }
+            String price = PushkinPicksService.priceLabel(event);
+            if (price != null) {
+                text.append(" · ").append(price);
             }
             keyboard.add(List.of(MaxBotApiClient.openAppButton(n + ". " + shorten(event.getTitle(), 40), bot,
                     DeepLinks.event(event.getId()))));

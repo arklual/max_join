@@ -62,6 +62,7 @@ class MaxWebhookControllerTest {
     @BeforeEach
     void setUp() {
         when(maxBotInfoService.getUsername()).thenReturn("join_bot");
+        when(pushkinPicksService.appliesToMaxUser(org.mockito.ArgumentMatchers.anyLong())).thenReturn(true);
     }
 
     @Test
@@ -103,9 +104,50 @@ class MaxWebhookControllerTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void welcomeHidesPushkinCardForUsersOutsideItsAgeRange() throws Exception {
+        when(pushkinPicksService.appliesToMaxUser(7L)).thenReturn(false);
+        String update = """
+                {"update_type":"message_created","timestamp":1,
+                 "message":{"sender":{"user_id":7},"recipient":{"chat_id":99,"chat_type":"dialog"},
+                            "body":{"mid":"m1","text":"/start"}}}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
+        verify(maxBotApiClient).sendMessageToChat(eq(99L), text.capture(), isNull(), keyboard.capture());
+        assertThat(text.getValue()).doesNotContain("Пушкинск");
+        assertThat(keyboard.getValue()).hasSize(1);
+    }
+
+    @Test
+    void pushkinCommandExplainsAgeLimitInsteadOfListing() throws Exception {
+        when(pushkinPicksService.appliesToMaxUser(7L)).thenReturn(false);
+        String update = """
+                {"update_type":"message_created","timestamp":1,
+                 "message":{"sender":{"user_id":7},"recipient":{"chat_id":99,"chat_type":"dialog"},
+                            "body":{"mid":"m1","text":"/pushkin"}}}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        verify(maxBotApiClient).sendMessageToChat(eq(99L), eq(MaxWebhookController.PUSHKIN_NOT_ELIGIBLE), isNull(), any());
+        org.mockito.Mockito.verify(pushkinPicksService, org.mockito.Mockito.never()).forMaxUser(7L);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void pushkinCommandListsEventsWithDeepLinkButtons() throws Exception {
         Event event = Event.builder().id(42L).title("Щелкунчик").city("Москва")
-                .eventDate(LocalDate.of(2026, 12, 25)).eventTime(LocalTime.of(19, 0)).build();
+                .eventDate(LocalDate.of(2026, 12, 25)).eventTime(LocalTime.of(19, 0))
+                .price(new java.math.BigDecimal("1500")).build();
         when(pushkinPicksService.forMaxUser(7L)).thenReturn(new PushkinPicksService.Picks("Москва", List.of(event)));
         String update = """
                 {"update_type":"message_created","timestamp":1,
@@ -121,7 +163,8 @@ class MaxWebhookControllerTest {
         ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
         verify(maxBotApiClient).sendMessageToChat(eq(99L), text.capture(), eq("html"), keyboard.capture());
-        assertThat(text.getValue()).contains("Щелкунчик").contains("25 декабря, 19:00").contains("Москва");
+        assertThat(text.getValue()).contains("Щелкунчик").contains("25 декабря, 19:00").contains("Москва")
+                .contains("от 1\u00A0500 ₽");
         assertThat(keyboard.getValue().get(0).get(0)).containsEntry("payload", "event_42");
         assertThat(keyboard.getValue().get(1).get(0)).containsEntry("payload", "pushkin");
     }

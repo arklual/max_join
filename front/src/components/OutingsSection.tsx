@@ -13,6 +13,7 @@ import { mediaUrl } from '../api/platform';
 import type { Outing } from '../types';
 import { formatEventDateTime } from '../utils/dateUtils';
 import { PushkinCardChip } from './PushkinCardInfo';
+import { usePushkinEligible } from '../utils/pushkin';
 
 function companionsLine(outing: Outing): string {
   const names = outing.companions.map((c) => c.name).filter(Boolean) as string[];
@@ -24,6 +25,7 @@ function companionsLine(outing: Outing): string {
 /** "Мои походы": upcoming events the user already has company for, each opening its chat. */
 export default function OutingsSection() {
   const navigate = useNavigate();
+  const pushkinEligible = usePushkinEligible() === true;
   const [outings, setOutings] = useState<Outing[] | null>(null);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function OutingsSection() {
                     {companionsLine(outing)}
                   </Typography>
                 </Box>
-                {outing.pushkinCard && (
+                {outing.pushkinCard && pushkinEligible && (
                   <Box sx={{ mt: 0.25 }}>
                     <PushkinCardChip />
                   </Box>

@@ -24,6 +24,7 @@ import { getTagChipSx } from './tagChipStyles';
 import { formatEventDateTime } from '../utils/dateUtils';
 import { formatPrice, plural } from '../utils/format';
 import { PushkinCardChip } from './PushkinCardInfo';
+import { usePushkinEligible } from '../utils/pushkin';
 import { reportLikeResult, type LikeResult } from './LikeFeedback';
 
 interface EventCardProps {
@@ -33,6 +34,7 @@ interface EventCardProps {
 
 export default function EventCard({ event, onLikeToggle }: EventCardProps) {
   const navigate = useNavigate();
+  const pushkinEligible = usePushkinEligible() === true;
   const [liked, setLiked] = useState(event.liked);
   const [likeLoading, setLikeLoading] = useState(false);
   const [showUnlikeConfirm, setShowUnlikeConfirm] = useState(false);
@@ -289,7 +291,7 @@ export default function EventCard({ event, onLikeToggle }: EventCardProps) {
             {formatEventDateTime(event.eventDate, event.eventTime, 'short')}
           </Typography>
         )}
-        {event.pushkinCard && (
+        {event.pushkinCard && pushkinEligible && (
           <Box sx={{ mt: 0.75 }}>
             <PushkinCardChip />
           </Box>

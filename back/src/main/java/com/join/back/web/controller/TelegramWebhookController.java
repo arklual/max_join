@@ -55,7 +55,7 @@ public class TelegramWebhookController {
                 long userId = message.path("from").path("id").asLong();
                 String text = message.path("text").asText("").trim();
                 if (text.equals("/start") || text.startsWith("/start ")) {
-                    handleStart(chatId, text.substring("/start".length()).trim());
+                    handleStart(chatId, userId, text.substring("/start".length()).trim());
                 } else if (text.equals("/help")) {
                     sendHelpMessage(chatId);
                 } else if (text.equals("/pushkin")) {
@@ -74,7 +74,7 @@ public class TelegramWebhookController {
                 webhookSecret.getBytes(StandardCharsets.UTF_8), received.getBytes(StandardCharsets.UTF_8));
     }
 
-    private void handleStart(long chatId, String payload) {
+    private void handleStart(long chatId, long telegramUserId, String payload) {
         if (payload.startsWith(INVITE_PREFIX)) {
             String code = payload.substring(INVITE_PREFIX.length()).trim();
             if (code.matches("[A-Za-z0-9_-]{1,64}")) {
@@ -82,27 +82,38 @@ public class TelegramWebhookController {
                 return;
             }
         }
-        sendStartMessage(chatId);
+        sendStartMessage(chatId, telegramUserId == 0 || pushkinPicksService.appliesToTelegramUser(telegramUserId));
     }
 
-    private void sendStartMessage(long chatId) {
+    private void sendStartMessage(long chatId, boolean showPushkin) {
         String text = """
                 👋 Привет! Это JOIN — здесь находят, с кем сходить на концерт, спектакль или выставку.
 
                 Как это работает:
                 1. Открой афишу и лайкни события, на которые хочешь пойти.
                 2. Когда на то же событие захочет кто-то ещё, я пришлю тебе напарника.
-                3. Договоритесь в чате — а накануне я напомню о встрече.
-
-                🎭 Тебе 14–22? Отмечаем события, которые можно оплатить Пушкинской картой.""";
-        List<List<java.util.Map<String, Object>>> keyboard = webappUrl == null || webappUrl.isBlank() ? null : List.of(
-                List.of(TelegramBotApiClient.webAppButton("🚀 Открыть афишу", webappUrl)),
-                List.of(TelegramBotApiClient.webAppButton("🎭 По Пушкинской карте", deepLink(DeepLinks.PUSHKIN))));
+                3. Договоритесь в чате — а накануне я напомню о встрече.""";
+        if (showPushkin) {
+            text += "\n\n🎭 Тебе 14–22? Отмечаем события, которые можно оплатить Пушкинской картой.";
+        }
+        List<List<java.util.Map<String, Object>>> keyboard = null;
+        if (webappUrl != null && !webappUrl.isBlank()) {
+            keyboard = new java.util.ArrayList<>();
+            keyboard.add(List.of(TelegramBotApiClient.webAppButton("🚀 Открыть афишу", webappUrl)));
+            if (showPushkin) {
+                keyboard.add(List.of(TelegramBotApiClient.webAppButton("🎭 По Пушкинской карте", deepLink(DeepLinks.PUSHKIN))));
+            }
+        }
         telegramBotApiClient.sendMessage(chatId, text, null, keyboard);
         log.info("Sent Telegram welcome to chat {}", chatId);
     }
 
     private void sendPushkinPicks(long chatId, long telegramUserId) {
+        if (!pushkinPicksService.appliesToTelegramUser(telegramUserId)) {
+            telegramBotApiClient.sendMessage(chatId, MaxWebhookController.PUSHKIN_NOT_ELIGIBLE, null,
+                    keyboard("🚀 Открыть афишу", webappUrl));
+            return;
+        }
         PushkinPicksService.Picks picks = pushkinPicksService.forTelegramUser(telegramUserId);
         if (picks.events().isEmpty()) {
             telegramBotApiClient.sendMessage(chatId,
@@ -123,6 +134,10 @@ public class TelegramWebhookController {
             }
             if (picks.city() == null && event.getCity() != null) {
                 text.append(" (").append(MessengerHtml.escape(event.getCity())).append(")");
+            }
+            String price = PushkinPicksService.priceLabel(event);
+            if (price != null) {
+                text.append(" · ").append(price);
             }
             String title = event.getTitle().length() > 40 ? event.getTitle().substring(0, 39) + "…" : event.getTitle();
             keyboard.add(List.of(TelegramBotApiClient.webAppButton(n + ". " + title, deepLink(DeepLinks.event(event.getId())))));

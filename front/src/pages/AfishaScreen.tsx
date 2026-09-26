@@ -17,6 +17,7 @@ import EventFiltersPanel from '../components/EventFilters';
 import EventCard from '../components/EventCard';
 import PeopleFilters from '../components/PeopleFilters';
 import HowItWorksCard from '../components/HowItWorksCard';
+import { rememberProfileAge, usePushkinEligible } from '../utils/pushkin';
 
 const PAGE_SIZE = 20;
 const INPUT_DEBOUNCE_MS = 350;
@@ -67,7 +68,6 @@ export default function AfishaScreen() {
   const [filtersOpen, setFiltersOpen] = useState<boolean>(getStoredFiltersOpen);
   const [peopleOpen, setPeopleOpen] = useState<boolean>(getStoredPeopleOpen);
   const [profileCity, setProfileCity] = useState<string | undefined>(undefined);
-  const [profileAge, setProfileAge] = useState<number | undefined>(undefined);
   const [pushkinEvents, setPushkinEvents] = useState<EventCardType[]>([]);
 
   const [recommended, setRecommended] = useState<EventCardType[]>([]);
@@ -97,7 +97,7 @@ export default function AfishaScreen() {
       .then((res) => {
         if (!cancelled) {
           setProfileCity(res.data.city);
-          setProfileAge(res.data.age);
+          rememberProfileAge(res.data.age);
         }
       })
       .catch(() => {});
@@ -119,8 +119,17 @@ export default function AfishaScreen() {
     !queryFilters.pushkinCard &&
     (!queryFilters.tagIds || queryFilters.tagIds.length === 0);
 
-  // The Pushkin card is for ages 14–22: show them a dedicated shelf.
-  const pushkinEligible = profileAge !== undefined && profileAge >= 14 && profileAge <= 22;
+  // The Pushkin card is for ages 14–22: they get a dedicated shelf and filter, others see nothing about it.
+  const pushkinEligibility = usePushkinEligible();
+  const pushkinEligible = pushkinEligibility === true;
+
+  // A stored filter or a `pushkin` deep link must not narrow the afisha for users the card doesn't apply to.
+  useEffect(() => {
+    if (pushkinEligibility === false && filters.pushkinCard) {
+      handleFiltersChange({ ...filters, pushkinCard: undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pushkinEligibility, filters.pushkinCard]);
 
   useEffect(() => {
     if (!pushkinEligible || !hasNoFilters) {
@@ -392,6 +401,7 @@ export default function AfishaScreen() {
               filters={filters}
               onChange={handleFiltersChange}
               onReset={handleResetFilters}
+              showPushkin={pushkinEligible}
             />
           </Box>
         </Collapse>
@@ -404,7 +414,7 @@ export default function AfishaScreen() {
 
       {!initialLoading && <HowItWorksCard />}
 
-      {filters.pushkinCard && (
+      {filters.pushkinCard && pushkinEligible && (
         <Box>
           <Chip
             icon={<CreditCardOutlined />}

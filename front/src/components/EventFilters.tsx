@@ -22,13 +22,15 @@ interface EventFiltersProps {
   filters: EventFiltersType;
   onChange: (filters: EventFiltersType) => void;
   onReset?: () => void;
+  /** The Pushkin card switch — only for users of card age (14–22). */
+  showPushkin?: boolean;
 }
 
 // Survives remounts (the panel is unmounted when collapsed), so selected tags
 // that aren't among the popular ones keep their chips.
 const tagCache = new Map<number, Tag>();
 
-export default function EventFilters({ filters, onChange, onReset }: EventFiltersProps) {
+export default function EventFilters({ filters, onChange, onReset, showPushkin = false }: EventFiltersProps) {
   const [popularTags, setPopularTags] = useState<Tag[]>([]);
   const [searchResults, setSearchResults] = useState<Tag[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -128,22 +130,24 @@ export default function EventFilters({ filters, onChange, onReset }: EventFilter
       })}
     >
       {/* Pushkin card */}
-      <FormControlLabel
-        control={
-          <Switch
-            checked={!!filters.pushkinCard}
-            onChange={(e) => onChange({ ...filters, pushkinCard: e.target.checked || undefined })}
-          />
-        }
-        label={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-            <CreditCardOutlined fontSize="small" sx={{ color: 'tertiary.main' }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>Только по Пушкинской карте</Typography>
-          </Box>
-        }
-        sx={{ mx: 0, justifyContent: 'space-between' }}
-        labelPlacement="start"
-      />
+      {showPushkin && (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={!!filters.pushkinCard}
+              onChange={(e) => onChange({ ...filters, pushkinCard: e.target.checked || undefined })}
+            />
+          }
+          label={
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <CreditCardOutlined fontSize="small" sx={{ color: 'tertiary.main' }} />
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>Только по Пушкинской карте</Typography>
+            </Box>
+          }
+          sx={{ mx: 0, justifyContent: 'space-between' }}
+          labelPlacement="start"
+        />
+      )}
 
       {/* Price */}
       <Stack spacing={0.75}>

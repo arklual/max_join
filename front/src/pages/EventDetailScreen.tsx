@@ -33,8 +33,11 @@ import Snackbar from '@mui/material/Snackbar';
 import ContentCopyOutlined from '@mui/icons-material/ContentCopyOutlined';
 import LinkifiedText from '../components/LinkifiedText';
 import PushkinCardInfo from '../components/PushkinCardInfo';
+import InviteToGroupDialog from '../components/InviteToGroupDialog';
+import { usePushkinEligible } from '../utils/pushkin';
 import { reportLikeResult, type LikeResult } from '../components/LikeFeedback';
-import { openExternalLink, shareToMax } from '../api/maxBridge';
+import { openExternalLink } from '../api/maxBridge';
+import { shareLink } from '../utils/share';
 import { loadAppConfig } from '../api/appConfig';
 import { buildEventStartLink } from '../utils/startTarget';
 import { nativeCopy } from '../api/native';
@@ -105,6 +108,10 @@ function CreateGroupModal({ eventId, onClose, onCreated }: CreateGroupModalProps
             variant="outlined"
           />
 
+          <Typography variant="body2" color="text.secondary">
+            Идёте с другом? Создайте компанию и позовите друзей по ссылке — остальные места займут новые знакомые.
+          </Typography>
+
           <Box>
             <Typography variant="body2" sx={{ mb: 1 }}>
               Максимальный размер: <strong>{maxSize}</strong> человек
@@ -148,9 +155,11 @@ function CreateGroupModal({ eventId, onClose, onCreated }: CreateGroupModalProps
 
 interface GroupsSectionProps {
   eventId: number;
+  eventTitle: string;
+  eventDate: string;
 }
 
-function GroupsSection({ eventId }: GroupsSectionProps) {
+function GroupsSection({ eventId, eventTitle, eventDate }: GroupsSectionProps) {
   const navigate = useNavigate();
   const [groups, setGroups] = useState<EventGroup[]>([]);
   const [totalGroups, setTotalGroups] = useState(0);
@@ -160,6 +169,8 @@ function GroupsSection({ eventId }: GroupsSectionProps) {
   const [showModal, setShowModal] = useState(false);
   const [joiningId, setJoiningId] = useState<number | null>(null);
   const [joinError, setJoinError] = useState('');
+  const [inviteGroup, setInviteGroup] = useState<EventGroup | null>(null);
+  const [createdGroup, setCreatedGroup] = useState<EventGroup | null>(null);
 
   useEffect(() => {
     fetchGroups();
@@ -217,7 +228,17 @@ function GroupsSection({ eventId }: GroupsSectionProps) {
 
   function handleGroupCreated(group: EventGroup) {
     setShowModal(false);
-    openGroupChat(group.id, group.groupChatId);
+    // Right after creating: offer to bring a friend along, then go to the chat.
+    setCreatedGroup(group);
+    setInviteGroup(group);
+  }
+
+  function handleInviteClosed() {
+    setInviteGroup(null);
+    if (createdGroup) {
+      openGroupChat(createdGroup.id, createdGroup.groupChatId);
+      setCreatedGroup(null);
+    }
   }
 
   return (
@@ -320,14 +341,26 @@ function GroupsSection({ eventId }: GroupsSectionProps) {
                 />
 
                 {myUserId != null && group.members?.some((m) => m.userId === myUserId) ? (
-                  <Button
-                    variant="tonal"
-                    size="small"
-                    onClick={() => openGroupChat(group.id, group.groupChatId)}
-                    sx={{ alignSelf: 'flex-end', textTransform: 'none', borderRadius: 4 }}
-                  >
-                    Вы в группе · Открыть чат
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="tonal"
+                      size="small"
+                      startIcon={<PersonAddAltOutlined />}
+                      disabled={group.currentSize >= group.maxSize}
+                      onClick={() => setInviteGroup(group)}
+                      sx={{ textTransform: 'none', borderRadius: 4 }}
+                    >
+                      Позвать друга
+                    </Button>
+                    <Button
+                      variant="tonal"
+                      size="small"
+                      onClick={() => openGroupChat(group.id, group.groupChatId)}
+                      sx={{ textTransform: 'none', borderRadius: 4 }}
+                    >
+                      Открыть чат
+                    </Button>
+                  </Box>
                 ) : (
                   <Button
                     variant="filled"
@@ -349,6 +382,16 @@ function GroupsSection({ eventId }: GroupsSectionProps) {
             </Alert>
           )}
         </>
+      )}
+
+      {inviteGroup && (
+        <InviteToGroupDialog
+          groupId={inviteGroup.id}
+          eventTitle={eventTitle}
+          eventDate={eventDate}
+          freeSpots={inviteGroup.maxSize - inviteGroup.currentSize}
+          onClose={handleInviteClosed}
+        />
       )}
 
       {showModal && (
@@ -381,6 +424,7 @@ export default function EventDetailScreen() {
   const [showUnlikeConfirm, setShowUnlikeConfirm] = useState(false);
   const [heartAnim, setHeartAnim] = useState(false);
   const [snack, setSnack] = useState('');
+  const pushkinEligible = usePushkinEligible() === true;
 
   useEffect(() => {
     async function fetchEvent() {
@@ -464,21 +508,9 @@ export default function EventDetailScreen() {
     const when = formatEventDateTime(event.eventDate, event.eventTime);
     const text = `Пойдём вместе на «${event.title}»${when ? ` — ${when}` : ''}?`;
 
-    if (await shareToMax(text, link)) return;
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: event.title, text, url: link });
-        return;
-      } catch (err) {
-        if ((err as { name?: string })?.name === 'AbortError') return;
-      }
-    }
-    try {
-      if (!(await nativeCopy(`${text} ${link}`))) await navigator.clipboard.writeText(`${text} ${link}`);
-      setSnack('Ссылка на событие скопирована — отправь её другу');
-    } catch {
-      setSnack('Не удалось поделиться ссылкой');
-    }
+    const result = await shareLink(event.title, text, link);
+    if (result === 'copied') setSnack('Ссылка на событие скопирована — отправь её другу');
+    if (result === 'failed') setSnack('Не удалось поделиться ссылкой');
   }
 
   function handleBuyTicket() {
@@ -663,7 +695,7 @@ export default function EventDetailScreen() {
           </Typography>
         )}
 
-        {event.pushkinCard && <PushkinCardInfo variant="event" />}
+        {event.pushkinCard && pushkinEligible && <PushkinCardInfo variant="event" />}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mt: 1, pb: 3 }}>
           {event.ticketUrl && (
@@ -709,7 +741,7 @@ export default function EventDetailScreen() {
         </Button>
 
         {/* Groups section */}
-        <GroupsSection eventId={event.id} />
+        <GroupsSection eventId={event.id} eventTitle={event.title} eventDate={event.eventDate} />
       </Box>
 
       <Dialog open={showUnlikeConfirm} onClose={() => setShowUnlikeConfirm(false)} maxWidth="xs">
