@@ -1,11 +1,14 @@
 package com.join.back.web.controller;
 
 import com.join.back.model.dto.CreateGroupRequest;
+import com.join.back.model.dto.GroupInviteCandidateResponse;
 import com.join.back.model.dto.GroupResponse;
 import com.join.back.model.dto.GroupStatsResponse;
+import com.join.back.model.dto.InviteToGroupRequest;
 import com.join.back.model.dto.JoinGroupResponse;
 import com.join.back.model.dto.LeaveGroupResponse;
 import com.join.back.repository.UserRepository;
+import com.join.back.service.GroupInviteService;
 import com.join.back.service.GroupService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -18,14 +21,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 public class GroupController extends BaseAuthController {
 
     private final GroupService groupService;
+    private final GroupInviteService groupInviteService;
 
-    public GroupController(UserRepository userRepository, GroupService groupService) {
+    public GroupController(UserRepository userRepository, GroupService groupService,
+                           GroupInviteService groupInviteService) {
         super(userRepository);
         this.groupService = groupService;
+        this.groupInviteService = groupInviteService;
     }
 
     // POST /api/events/{eventId}/groups — create group
@@ -79,5 +87,22 @@ public class GroupController extends BaseAuthController {
     public ResponseEntity<Page<GroupResponse>> getMyGroups(Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(groupService.getMyGroups(userId, pageable));
+    }
+
+    // GET /api/groups/{id}/invite-candidates — people I know who can be invited
+    @GetMapping("/api/groups/{id}/invite-candidates")
+    public ResponseEntity<List<GroupInviteCandidateResponse>> getInviteCandidates(@PathVariable Long id) {
+        Long userId = requireCurrentUserId();
+        return ResponseEntity.ok(groupInviteService.getCandidates(userId, id));
+    }
+
+    // POST /api/groups/{id}/invite — invite a friend into the group
+    @PostMapping("/api/groups/{id}/invite")
+    public ResponseEntity<GroupInviteCandidateResponse> invite(
+            @PathVariable Long id,
+            @Valid @RequestBody InviteToGroupRequest request
+    ) {
+        Long userId = requireCurrentUserId();
+        return ResponseEntity.ok(groupInviteService.invite(userId, id, request.userId()));
     }
 }

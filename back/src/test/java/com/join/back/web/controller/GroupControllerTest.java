@@ -51,6 +51,9 @@ class GroupControllerTest {
     private GroupService groupService;
 
     @MockBean
+    private com.join.back.service.GroupInviteService groupInviteService;
+
+    @MockBean
     private UserRepository userRepository;
 
     private GroupResponse sampleGroupResponse;

@@ -5,6 +5,7 @@ import { mediaUrl } from '../api/platform';
 import { formatEventDateTime } from '../utils/dateUtils';
 import { plural } from '../utils/format';
 import type { GroupResponse } from '../types';
+import InviteToGroupDialog from '../components/InviteToGroupDialog';
 import {
   Typography,
   CircularProgress,
@@ -28,6 +29,7 @@ import {
   ChatBubbleOutlineOutlined,
   Diversity3,
   ArrowForwardIosOutlined,
+  PersonAddAltOutlined,
 } from '@mui/icons-material';
 
 function formatDate(dateString: string | undefined): string {
@@ -42,6 +44,7 @@ export default function GroupsScreen() {
   const [leavingId, setLeavingId] = useState<number | null>(null);
   const [confirmLeaveId, setConfirmLeaveId] = useState<number | null>(null);
   const [snack, setSnack] = useState('');
+  const [inviteGroup, setInviteGroup] = useState<GroupResponse | null>(null);
 
   const loadGroups = useCallback(async () => {
     setLoading(true);
@@ -242,7 +245,16 @@ export default function GroupsScreen() {
                   disabled={!group.groupChatId}
                   sx={{ flex: 1 }}
                 >
-                  Открыть чат
+                  Чат
+                </Button>
+                <Button
+                  variant="tonal"
+                  startIcon={<PersonAddAltOutlined />}
+                  onClick={() => setInviteGroup(group)}
+                  disabled={group.status !== 'OPEN'}
+                  sx={{ flex: 1 }}
+                >
+                  Позвать
                 </Button>
                 <Button
                   variant="outlined"
@@ -276,6 +288,16 @@ export default function GroupsScreen() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {inviteGroup && (
+        <InviteToGroupDialog
+          groupId={inviteGroup.id}
+          eventTitle={inviteGroup.eventTitle}
+          eventDate={inviteGroup.eventDate}
+          freeSpots={inviteGroup.maxSize - inviteGroup.currentSize}
+          onClose={() => setInviteGroup(null)}
+        />
+      )}
 
       <Snackbar
         open={!!snack}

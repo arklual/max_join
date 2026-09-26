@@ -22,16 +22,19 @@ import apiClient from '../api/client';
 import { ALL_INTERESTS, INTEREST_LABELS, type InterestType } from '../types';
 import CitySelect from '../components/CitySelect';
 import { takePendingInvite } from '../utils/inviteLinks';
+import { takePendingRoute } from '../utils/startTarget';
 import { isMessengerApp, setAuthToken } from '../api/platform';
 import UniversitySelect from '../components/UniversitySelect';
 import LinkMaxCard from '../components/LinkMaxCard';
 import CheckOutlined from '@mui/icons-material/CheckOutlined';
 import { getTagChipSx } from '../components/tagChipStyles';
 
-/** Where to go after sign-up: a friend-group invite that brought the user here wins. */
+/** Where to go after sign-up: the invite or deep link that brought the user here. */
 function postRegistrationTarget(): string {
   const invite = takePendingInvite();
-  return invite ? `/friend-groups?invite=${invite}` : '/afisha';
+  const route = takePendingRoute();
+  if (invite) return `/friend-groups?invite=${invite}`;
+  return route ?? '/afisha';
 }
 
 interface FormData {

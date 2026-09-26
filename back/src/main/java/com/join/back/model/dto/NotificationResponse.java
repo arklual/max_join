@@ -16,6 +16,7 @@ public record NotificationResponse(
         Long eventId,
         String eventTitle,
         Long chatId,
+        Long groupId,
         boolean read,
         LocalDateTime createdAt
 ) {

@@ -59,6 +59,20 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
+    @Transactional(transactionManager = "transactionManager")
+    public Notification createGroupInviteNotification(Long userId, Long groupId, String inviterName, String eventTitle) {
+        Notification notification = Notification.builder()
+                .userId(userId)
+                .type(NotificationType.GROUP_INVITE)
+                .title("Тебя зовут в компанию")
+                .message((inviterName != null ? inviterName : "Друг") + " зовёт тебя на «" + eventTitle + "»")
+                .groupId(groupId)
+                .read(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+        return notificationRepository.save(notification);
+    }
+
     /**
      * Returns paginated notifications for a user, newest first.
      * Enriches MATCH notifications with companion + event + chat details.
@@ -155,6 +169,7 @@ public class NotificationService {
                 match != null ? match.getEventId() : (event != null ? event.getId() : null),
                 event != null ? event.getTitle() : null,
                 chatId,
+                n.getGroupId(),
                 n.isRead(),
                 n.getCreatedAt()
         );

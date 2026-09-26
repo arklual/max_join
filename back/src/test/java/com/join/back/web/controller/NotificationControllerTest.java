@@ -53,7 +53,7 @@ class NotificationControllerTest {
 
         NotificationResponse response = new NotificationResponse(
                 1L, NotificationType.MATCH, "New match!", "You matched with Alice at event \"Test Concert\"",
-                100L, 2L, "Alice", null, 7L, "Test Concert", 42L, false, FIXED_NOW
+                100L, 2L, "Alice", null, 7L, "Test Concert", 42L, null, false, FIXED_NOW
         );
         Page<NotificationResponse> page = new PageImpl<>(List.of(response), PageRequest.of(0, 10), 1);
         when(notificationService.getNotifications(eq(1L), any(Pageable.class))).thenReturn(page);

@@ -43,6 +43,15 @@ public class TelegramNotificationService {
                 "👥 Открыть чат группы", DeepLinks.groupChat(groupChatId));
     }
 
+    public void sendGroupInvite(Long telegramId, String inviterName, String eventTitle, String when, Long groupId) {
+        send(telegramId, String.format("""
+                👋 <b>%s</b> зовёт тебя в компанию на «%s»%s
+
+                Загляни — там уже видно, кто ещё идёт 👇""",
+                esc(inviterName != null ? inviterName : "Друг"), esc(eventTitle), when != null ? " — " + esc(when) : ""),
+                "👥 Посмотреть компанию", DeepLinks.group(groupId));
+    }
+
     public void sendEventReminder(Long telegramId, String companionName, String eventTitle, String when, Long chatId) {
         send(telegramId, String.format("""
                 ⏰ Уже %s — «%s»

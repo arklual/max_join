@@ -16,6 +16,7 @@ import ProfileScreen from './pages/ProfileScreen';
 import CompanionProfileScreen from './pages/CompanionProfileScreen';
 import EventDetailScreen from './pages/EventDetailScreen';
 import GroupsScreen from './pages/GroupsScreen';
+import GroupInviteScreen from './pages/GroupInviteScreen';
 import GroupChatScreen from './pages/GroupChatScreen';
 import FriendGroupsScreen from './pages/FriendGroupsScreen';
 import FriendGroupDetailScreen from './pages/FriendGroupDetailScreen';
@@ -47,7 +48,7 @@ export default function App() {
             <Route path="/events/:id" element={<EventDetailScreen />} />
             <Route path="/profile/:userId" element={<CompanionProfileScreen />} />
             <Route path="/groups" element={<GroupsScreen />} />
-            <Route path="/groups/:id" element={<GroupsScreen />} />
+            <Route path="/groups/:id" element={<GroupInviteScreen />} />
             <Route path="/group-chats/:groupChatId" element={<GroupChatScreen />} />
             <Route path="/friend-groups" element={<FriendGroupsScreen />} />
             <Route path="/friend-groups/:id" element={<FriendGroupDetailScreen />} />

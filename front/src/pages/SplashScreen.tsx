@@ -6,7 +6,7 @@ import Logo from '../components/Logo';
 import { getAuthToken, isMessengerApp } from '../api/platform';
 import { getStartParam } from '../api/maxBridge';
 import { INVITE_START_PARAM_PREFIX, rememberPendingInvite, takePendingInvite } from '../utils/inviteLinks';
-import { routeForStartParam } from '../utils/startTarget';
+import { rememberPendingRoute, routeForStartParam, takePendingRoute } from '../utils/startTarget';
 
 type SplashState = 'loading' | 'error';
 
@@ -28,6 +28,7 @@ export default function SplashScreen() {
     if (inviteCode) rememberPendingInvite(inviteCode);
     // Other deep links (bot notifications, shared events): chat_<id>, event_<id>, pushkin…
     const deepLink = inviteCode ? null : readStartParams().map(routeForStartParam).find(Boolean) ?? null;
+    if (deepLink) rememberPendingRoute(deepLink);
     const postAuthTarget = inviteCode ? `/friend-groups?invite=${inviteCode}` : deepLink ?? '/afisha';
 
     // Outside MAX there is no signed init data: sign in with email + password first.
@@ -45,6 +46,7 @@ export default function SplashScreen() {
 
       if (response.data && response.data.registered !== false) {
         takePendingInvite();
+        takePendingRoute();
         navigate(postAuthTarget, { replace: true });
       } else {
         navigate('/register', { replace: true });

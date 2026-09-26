@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 044-add-group-to-notifications
+      author: join-team
+      comment: Invitations to an event group (GROUP_INVITE notifications).
+      changes:
+        - addColumn:
+            tableName: notifications
+            columns:
+              - column:
+                  name: group_id
+                  type: BIGINT

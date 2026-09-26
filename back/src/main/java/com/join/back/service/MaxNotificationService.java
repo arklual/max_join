@@ -80,6 +80,23 @@ public class MaxNotificationService {
     }
 
     /**
+     * Приглашение от знакомого в компанию на событие.
+     */
+    public void sendGroupInvite(Long maxId, String inviterName, String eventTitle, String when, Long groupId) {
+        String text = String.format(
+                """
+                👋 <b>%s</b> зовёт тебя в компанию на «%s»%s
+
+                Загляни — там уже видно, кто ещё идёт 👇""",
+                escapeHtml(inviterName != null ? inviterName : "Друг"),
+                escapeHtml(eventTitle),
+                when != null ? " — " + escapeHtml(when) : ""
+        );
+
+        send(maxId, text, "👥 Посмотреть компанию", DeepLinks.group(groupId));
+    }
+
+    /**
      * Напоминание накануне мероприятия, на которое пользователь идёт с напарником.
      */
     public void sendEventReminder(Long maxId, String companionName, String eventTitle, String when, Long chatId) {

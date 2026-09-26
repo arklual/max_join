@@ -42,6 +42,7 @@ function targetPath(n: AppNotification): string | null {
     case 'CHAT_MESSAGE':
       return n.chatId ? `/chats/${n.chatId}` : '/chats';
     case 'GROUP_INVITE':
+      if (n.groupId) return `/groups/${n.groupId}`;
       return n.eventId ? `/events/${n.eventId}` : '/groups';
     default:
       if (n.chatId) return `/chats/${n.chatId}`;

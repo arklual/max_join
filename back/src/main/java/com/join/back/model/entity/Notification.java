@@ -45,6 +45,9 @@ public class Notification {
     @Column(name = "match_id")
     private Long matchId;
 
+    @Column(name = "group_id")
+    private Long groupId;
+
     @Column(name = "read", nullable = false)
     private boolean read;
 

@@ -19,6 +19,10 @@ public final class DeepLinks {
         return groupChatId == null ? null : "gchat_" + groupChatId;
     }
 
+    public static String group(Long groupId) {
+        return groupId == null ? null : "group_" + groupId;
+    }
+
     public static String event(Long eventId) {
         return eventId == null ? null : "event_" + eventId;
     }

@@ -33,6 +33,12 @@ public class MessengerNotificationService {
         if (user.getTelegramId() != null) telegramNotificationService.sendGroupMessageNotification(user.getTelegramId(), senderName, groupEventTitle, messageText, groupChatId);
     }
 
+    public void sendGroupInvite(User user, String inviterName, String eventTitle, String when, Long groupId) {
+        if (user == null) return;
+        if (user.getMaxId() != null) maxNotificationService.sendGroupInvite(user.getMaxId(), inviterName, eventTitle, when, groupId);
+        if (user.getTelegramId() != null) telegramNotificationService.sendGroupInvite(user.getTelegramId(), inviterName, eventTitle, when, groupId);
+    }
+
     public void sendEventReminder(User user, String companionName, String eventTitle, String when, Long chatId) {
         if (user == null) return;
         if (user.getMaxId() != null) maxNotificationService.sendEventReminder(user.getMaxId(), companionName, eventTitle, when, chatId);
