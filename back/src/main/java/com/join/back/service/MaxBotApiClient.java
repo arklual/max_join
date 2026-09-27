@@ -86,6 +86,25 @@ public class MaxBotApiClient {
         return button;
     }
 
+    /** Inline button handled by the bot itself: a {@code message_callback} update with this payload. */
+    public static Map<String, Object> callbackButton(String text, String payload) {
+        return Map.of("type", "callback", "text", text, "payload", payload);
+    }
+
+    /**
+     * POST /answers?callback_id=… — answers a callback button: replaces the message the button was in
+     * with {@code text} and {@code keyboard} (null — no buttons).
+     */
+    public void answerCallback(String callbackId, String text, List<List<Map<String, Object>>> keyboard) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("text", text);
+        message.put("attachments", keyboard == null || keyboard.isEmpty() ? List.of() : List.of(Map.of(
+                "type", "inline_keyboard",
+                "payload", Map.of("buttons", keyboard))));
+        exchange(HttpMethod.POST, "/answers?callback_id=" + java.net.URLEncoder.encode(callbackId,
+                java.nio.charset.StandardCharsets.UTF_8), Map.of("message", message));
+    }
+
     /** Inline button that opens an external URL. */
     public static Map<String, Object> linkButton(String text, String url) {
         return Map.of("type", "link", "text", text, "url", url);

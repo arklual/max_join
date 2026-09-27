@@ -65,7 +65,7 @@ public class MaxBotSetupConfig {
         }
 
         String fullWebhookUrl = webhookUrl + "/api/max/webhook";
-        maxBotApiClient.subscribeWebhook(fullWebhookUrl, List.of("bot_started", "message_created"), webhookSecret);
+        maxBotApiClient.subscribeWebhook(fullWebhookUrl, List.of("bot_started", "message_created", "message_callback"), webhookSecret);
         log.info("MAX webhook set: {}", fullWebhookUrl);
     }
 }

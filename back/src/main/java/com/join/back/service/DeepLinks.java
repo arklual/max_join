@@ -19,6 +19,16 @@ public final class DeepLinks {
         return groupChatId == null ? null : "gchat_" + groupChatId;
     }
 
+    /** Bot button: confirm "we agreed to go together" in a match chat. */
+    public static String agree(Long chatId) {
+        return "agree_" + chatId;
+    }
+
+    /** Bot button: answer "did you go together?" for a match chat. */
+    public static String went(Long chatId, boolean went) {
+        return "went_" + chatId + (went ? "_yes" : "_no");
+    }
+
     public static String group(Long groupId) {
         return groupId == null ? null : "group_" + groupId;
     }

@@ -85,3 +85,5 @@ databaseChangeLog:
       file: db/changelog/044-add-group-to-notifications.yaml
   - include:
       file: db/changelog/045-create-user-blocks-table.yaml
+  - include:
+      file: db/changelog/046-create-outing-confirmations-table.yaml

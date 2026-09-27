@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: 046-create-outing-confirmations-table
+      author: join-team
+      comment: Pair outcome per participant of a match chat — "agreed to go together" and "went together?".
+      changes:
+        - createTable:
+            tableName: outing_confirmations
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: chat_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_outing_confirmations_chat_id
+                    references: chats(id)
+                    deleteCascade: true
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_outing_confirmations_user_id
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: agreed_at
+                  type: TIMESTAMP
+              - column:
+                  name: went
+                  type: VARCHAR(20)
+              - column:
+                  name: answered_at
+                  type: TIMESTAMP
+              - column:
+                  name: asked_at
+                  type: TIMESTAMP
+        - addUniqueConstraint:
+            tableName: outing_confirmations
+            columnNames: chat_id, user_id
+            constraintName: uq_outing_confirmations_chat_user

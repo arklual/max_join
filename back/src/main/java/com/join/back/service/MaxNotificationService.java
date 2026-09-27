@@ -113,7 +113,40 @@ public class MaxNotificationService {
         send(maxId, text, ("💬 Написать " + shortName(companionName)).trim(), DeepLinks.chat(chatId));
     }
 
+    /** Companion pressed "договорились" — confirm right here with a button. */
+    public void sendOutingProposal(Long maxId, String companionName, String eventTitle, Long chatId) {
+        String text = String.format("""
+                🤝 <b>%s</b> предлагает отметить: вы договорились пойти на «%s» вместе.
+
+                Подтвердите — и накануне я напомню о встрече.""",
+                escapeHtml(companionName), escapeHtml(eventTitle));
+        sendKeyboard(maxId, text, List.of(
+                List.of(MaxBotApiClient.callbackButton("✅ Подтвердить", DeepLinks.agree(chatId))),
+                List.of(MaxBotApiClient.openAppButton("💬 Открыть чат", maxBotInfoService.getUsername(), DeepLinks.chat(chatId)))));
+    }
+
+    /** Both confirmed the plan. */
+    public void sendOutingAgreed(Long maxId, String companionName, String eventTitle, Long chatId) {
+        String text = String.format("✅ Договорились: вы с <b>%s</b> идёте на «%s». Накануне напомню о встрече.",
+                escapeHtml(companionName), escapeHtml(eventTitle));
+        send(maxId, text, "💬 Открыть чат", DeepLinks.chat(chatId));
+    }
+
+    /** The day after the event: "did you go together?" answered with one tap. */
+    public void sendOutingFeedback(Long maxId, String companionName, String eventTitle, Long chatId) {
+        String text = String.format("👋 Вчера было «%s». Сходили вместе с <b>%s</b>?",
+                escapeHtml(eventTitle), escapeHtml(companionName));
+        sendKeyboard(maxId, text, List.of(List.of(
+                MaxBotApiClient.callbackButton("🎉 Да, сходили", DeepLinks.went(chatId, true)),
+                MaxBotApiClient.callbackButton("Не получилось", DeepLinks.went(chatId, false)))));
+    }
+
     private void send(Long maxId, String text, String buttonText, String payload) {
+        sendKeyboard(maxId, text, List.of(List.of(
+                MaxBotApiClient.openAppButton(buttonText, maxBotInfoService.getUsername(), payload))));
+    }
+
+    private void sendKeyboard(Long maxId, String text, List<List<Map<String, Object>>> keyboard) {
         if (maxId == null) {
             return;
         }
@@ -122,8 +155,6 @@ public class MaxNotificationService {
             return;
         }
         try {
-            List<List<Map<String, Object>>> keyboard = List.of(List.of(
-                    MaxBotApiClient.openAppButton(buttonText, maxBotInfoService.getUsername(), payload)));
             maxBotApiClient.sendMessageToUser(maxId, text, "html", keyboard);
             log.info("Sent notification to MAX user {}", maxId);
         } catch (Exception e) {

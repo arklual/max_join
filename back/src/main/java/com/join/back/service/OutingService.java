@@ -5,11 +5,13 @@ import com.join.back.model.entity.Chat;
 import com.join.back.model.entity.Event;
 import com.join.back.model.entity.GroupChat;
 import com.join.back.model.entity.GroupMember;
+import com.join.back.model.entity.OutingConfirmation;
 import com.join.back.model.entity.User;
 import com.join.back.repository.ChatRepository;
 import com.join.back.repository.EventRepository;
 import com.join.back.repository.GroupChatRepository;
 import com.join.back.repository.GroupMemberRepository;
+import com.join.back.repository.OutingConfirmationRepository;
 import com.join.back.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +45,7 @@ public class OutingService {
     private final GroupChatRepository groupChatRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final OutingConfirmationRepository outingConfirmationRepository;
 
     @Transactional(readOnly = true, transactionManager = "transactionManager")
     public List<OutingResponse> getUpcoming(Long userId) {
@@ -66,13 +69,20 @@ public class OutingService {
                 .filter(event -> event.getEventDate() != null && !event.getEventDate().isBefore(today))
                 .collect(Collectors.toMap(Event::getId, Function.identity()));
 
+        // Pairs where both confirmed the plan.
+        Map<Long, Long> agreedPeople = outingConfirmationRepository
+                .findByChatIdIn(chats.stream().map(Chat::getId).toList()).stream()
+                .filter(c -> c.getAgreedAt() != null)
+                .collect(Collectors.groupingBy(OutingConfirmation::getChatId, Collectors.counting()));
+
         List<OutingResponse> outings = new ArrayList<>();
         for (Chat chat : chats) {
             Event event = events.get(chat.getEventId());
             if (event == null) continue;
             Long companionId = chat.getUser1Id().equals(userId) ? chat.getUser2Id() : chat.getUser1Id();
             User companion = userRepository.findById(companionId).orElse(null);
-            outings.add(toResponse(event, List.of(toCompanion(companionId, companion)), chat.getId(), null));
+            outings.add(toResponse(event, List.of(toCompanion(companionId, companion)), chat.getId(), null,
+                    agreedPeople.getOrDefault(chat.getId(), 0L) >= 2));
         }
         for (GroupChat groupChat : groupChats) {
             Event event = events.get(groupChat.getEventId());
@@ -82,16 +92,17 @@ public class OutingService {
                     .filter(member -> !member.getUserId().equals(userId))
                     .map(member -> toCompanion(member.getUserId(), userRepository.findById(member.getUserId()).orElse(null)))
                     .toList();
-            outings.add(toResponse(event, companions, null, groupChat.getId()));
+            outings.add(toResponse(event, companions, null, groupChat.getId(), false));
         }
         outings.sort(Comparator.comparing(OutingResponse::eventDate)
                 .thenComparing(OutingResponse::eventTime, Comparator.nullsLast(Comparator.<LocalTime>naturalOrder())));
         return outings;
     }
 
-    private static OutingResponse toResponse(Event event, List<OutingResponse.Companion> companions, Long chatId, Long groupChatId) {
+    private static OutingResponse toResponse(Event event, List<OutingResponse.Companion> companions, Long chatId,
+                                             Long groupChatId, boolean agreed) {
         return new OutingResponse(event.getId(), event.getTitle(), event.getImageUrl(), event.getEventDate(),
-                event.getEventTime(), event.getCity(), event.isPushkinCard(), companions, chatId, groupChatId);
+                event.getEventTime(), event.getCity(), event.isPushkinCard(), companions, chatId, groupChatId, agreed);
     }
 
     private static OutingResponse.Companion toCompanion(Long userId, User user) {

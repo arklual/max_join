@@ -7,6 +7,8 @@ import com.join.back.service.MaxBotApiClient;
 import com.join.back.service.MaxBotInfoService;
 import com.join.back.service.MaxLinkService;
 import com.join.back.service.MaxLoginService;
+import com.join.back.repository.UserRepository;
+import com.join.back.service.OutingAgreementService;
 import com.join.back.service.PushkinPicksService;
 import com.join.back.util.MessengerHtml;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Обработчик MAX Webhook — принимает входящие обновления от MAX
@@ -43,6 +47,8 @@ public class MaxWebhookController {
     private final MaxLinkService maxLinkService;
     private final MaxLoginService maxLoginService;
     private final PushkinPicksService pushkinPicksService;
+    private final OutingAgreementService outingAgreementService;
+    private final UserRepository userRepository;
 
     @Value("${max.webhook-secret:}")
     private String webhookSecret;
@@ -76,6 +82,7 @@ public class MaxWebhookController {
                         sendPushkinPicks(chatId, userId);
                     }
                 }
+                case "message_callback" -> handleCallback(update);
                 default -> log.debug("MAX webhook: ignoring update_type={}", updateType);
             }
         } catch (Exception e) {
@@ -92,6 +99,27 @@ public class MaxWebhookController {
         return received != null && MessageDigest.isEqual(
                 webhookSecret.getBytes(StandardCharsets.UTF_8),
                 received.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /** Bot buttons "✅ Подтвердить" / "Сходили вместе?" — answered in place, without opening the app. */
+    private void handleCallback(JsonNode update) {
+        JsonNode callback = update.path("callback");
+        String callbackId = callback.path("callback_id").asText("");
+        String payload = callback.path("payload").asText("");
+        long maxUserId = callback.path("user").path("user_id").asLong(update.path("user").path("user_id").asLong());
+        if (callbackId.isEmpty() || maxUserId == 0) {
+            return;
+        }
+        String reply = outingAgreementService.handleButton(userRepository.findByMaxId(maxUserId).orElse(null), payload);
+        if (reply == null) {
+            return;
+        }
+        Matcher chat = CHAT_IN_PAYLOAD.matcher(payload);
+        List<List<Map<String, Object>>> keyboard = chat.find()
+                ? List.of(List.of(MaxBotApiClient.openAppButton("💬 Открыть чат", maxBotInfoService.getUsername(),
+                        DeepLinks.chat(Long.parseLong(chat.group(1))))))
+                : null;
+        maxBotApiClient.answerCallback(callbackId, reply, keyboard);
     }
 
     private void handleStart(long chatId, long maxUserId, String payload) {
@@ -164,6 +192,8 @@ public class MaxWebhookController {
         maxBotApiClient.sendMessageToChat(chatId, welcomeText, null, keyboard);
         log.info("Sent welcome message to chat {}", chatId);
     }
+
+    private static final Pattern CHAT_IN_PAYLOAD = Pattern.compile("^(?:agree|went)_(\\d+)");
 
     static final String PUSHKIN_NOT_ELIGIBLE = "Пушкинская карта действует с 14 до 22 лет, поэтому подборку по ней не показываю. "
             + "Зато в афише полно всего остального 👇";

@@ -11,6 +11,7 @@ import { formatTime, formatDateSeparator, getDateKey } from '../utils/dateUtils'
 import IceBreakerSection from '../components/IceBreakerSection';
 import ChatInput from '../components/ChatInput';
 import BlockUserDialog from '../components/BlockUserDialog';
+import OutingBar from '../components/OutingBar';
 import {
   AppBar,
   Toolbar,
@@ -394,15 +395,18 @@ export default function ChatScreen() {
           )}
         </Box>
       ) : (
-        <ChatInput
-          ref={inputRef}
-          value={inputText}
-          onChange={setInputText}
-          onSend={handleSend}
-          disabled={sending}
-          error={sendError}
-          onErrorClose={() => setSendError('')}
-        />
+        <>
+          <OutingBar chatId={chatId} companionName={chat?.companionName ?? null} onError={setSendError} />
+          <ChatInput
+            ref={inputRef}
+            value={inputText}
+            onChange={setInputText}
+            onSend={handleSend}
+            disabled={sending}
+            error={sendError}
+            onErrorClose={() => setSendError('')}
+          />
+        </>
       )}
 
       {showBlockDialog && chat && (

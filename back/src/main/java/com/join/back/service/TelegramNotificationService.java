@@ -60,6 +60,21 @@ public class TelegramNotificationService {
                 esc(when), esc(eventTitle), esc(companionName)), "💬 Написать", DeepLinks.chat(chatId));
     }
 
+    public void sendOutingProposal(Long telegramId, String companionName, String eventTitle, Long chatId) {
+        send(telegramId, String.format("🤝 <b>%s</b> предлагает отметить: вы договорились пойти на «%s» вместе. Подтвердите в чате.",
+                esc(companionName), esc(eventTitle)), "✅ Подтвердить в чате", DeepLinks.chat(chatId));
+    }
+
+    public void sendOutingAgreed(Long telegramId, String companionName, String eventTitle, Long chatId) {
+        send(telegramId, String.format("✅ Договорились: вы с <b>%s</b> идёте на «%s». Накануне напомню о встрече.",
+                esc(companionName), esc(eventTitle)), "💬 Открыть чат", DeepLinks.chat(chatId));
+    }
+
+    public void sendOutingFeedback(Long telegramId, String companionName, String eventTitle, Long chatId) {
+        send(telegramId, String.format("👋 Вчера было «%s». Сходили вместе с <b>%s</b>?",
+                esc(eventTitle), esc(companionName)), "Ответить", DeepLinks.chat(chatId));
+    }
+
     private void send(Long telegramId, String text, String buttonText, String payload) {
         if (telegramId == null || !telegramBotApiClient.isConfigured()) return;
         try {

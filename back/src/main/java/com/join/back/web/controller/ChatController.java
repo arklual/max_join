@@ -3,10 +3,12 @@ package com.join.back.web.controller;
 import com.join.back.model.dto.ChatMessageResponse;
 import com.join.back.model.dto.ChatResponse;
 import com.join.back.model.dto.IceBreakerResponse;
+import com.join.back.model.dto.OutingStateResponse;
 import com.join.back.model.dto.SendMessageRequest;
 import com.join.back.repository.UserRepository;
 import com.join.back.service.ChatService;
 import com.join.back.service.IceBreakerService;
+import com.join.back.service.OutingAgreementService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,11 +30,39 @@ public class ChatController extends BaseAuthController {
 
     private final ChatService chatService;
     private final IceBreakerService iceBreakerService;
+    private final OutingAgreementService outingAgreementService;
 
-    public ChatController(UserRepository userRepository, ChatService chatService, IceBreakerService iceBreakerService) {
+    public ChatController(UserRepository userRepository, ChatService chatService, IceBreakerService iceBreakerService,
+                          OutingAgreementService outingAgreementService) {
         super(userRepository);
         this.chatService = chatService;
         this.iceBreakerService = iceBreakerService;
+        this.outingAgreementService = outingAgreementService;
+    }
+
+    // GET /api/chats/{id}/outing — "договорились?" / "сходили вместе?" state of the pair
+    @GetMapping("/{id}/outing")
+    public ResponseEntity<OutingStateResponse> getOuting(@PathVariable Long id) {
+        return ResponseEntity.ok(outingAgreementService.getState(id, requireCurrentUserId()));
+    }
+
+    @PostMapping("/{id}/outing/agree")
+    public ResponseEntity<OutingStateResponse> agree(@PathVariable Long id) {
+        return ResponseEntity.ok(outingAgreementService.agree(id, requireCurrentUserId()));
+    }
+
+    @DeleteMapping("/{id}/outing/agree")
+    public ResponseEntity<OutingStateResponse> cancelAgreement(@PathVariable Long id) {
+        return ResponseEntity.ok(outingAgreementService.cancelAgreement(id, requireCurrentUserId()));
+    }
+
+    // POST /api/chats/{id}/outing/went {"went": true|false}
+    @PostMapping("/{id}/outing/went")
+    public ResponseEntity<OutingStateResponse> answerWent(@PathVariable Long id, @Valid @RequestBody WentRequest request) {
+        return ResponseEntity.ok(outingAgreementService.answer(id, requireCurrentUserId(), request.went()));
+    }
+
+    public record WentRequest(@jakarta.validation.constraints.NotNull Boolean went) {
     }
 
     @GetMapping

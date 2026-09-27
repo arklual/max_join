@@ -59,6 +59,12 @@ class MaxWebhookControllerTest {
     @MockBean
     private PushkinPicksService pushkinPicksService;
 
+    @MockBean
+    private com.join.back.service.OutingAgreementService outingAgreementService;
+
+    @MockBean
+    private com.join.back.repository.UserRepository userRepository;
+
     @BeforeEach
     void setUp() {
         when(maxBotInfoService.getUsername()).thenReturn("join_bot");
@@ -84,6 +90,27 @@ class MaxWebhookControllerTest {
         assertThat(button).containsEntry("type", "open_app")
                 .containsEntry("web_app", "join_bot")
                 .containsEntry("payload", "join_abc123");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void wentButtonIsAnsweredInPlace() throws Exception {
+        com.join.back.model.entity.User user = com.join.back.model.entity.User.builder().id(5L).maxId(7L).build();
+        when(userRepository.findByMaxId(7L)).thenReturn(java.util.Optional.of(user));
+        when(outingAgreementService.handleButton(user, "went_42_yes")).thenReturn("🎉 Здорово!");
+        String update = """
+                {"update_type":"message_callback","timestamp":1,
+                 "callback":{"timestamp":1,"callback_id":"cb-1","payload":"went_42_yes","user":{"user_id":7}}}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
+        verify(maxBotApiClient).answerCallback(eq("cb-1"), eq("🎉 Здорово!"), keyboard.capture());
+        assertThat(keyboard.getValue().get(0).get(0)).containsEntry("payload", "chat_42");
     }
 
     @Test
