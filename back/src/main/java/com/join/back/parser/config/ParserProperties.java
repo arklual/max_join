@@ -12,6 +12,11 @@ import java.util.List;
 public class ParserProperties {
 
     private boolean enabled = true;
+    /**
+     * Cities JOIN serves (Russian names, env {@code JOIN_CITIES}). Every source loads events for these
+     * cities that it covers (codes in {@link CityCodes}); the afisha is filtered by the user's city among them.
+     */
+    private List<String> cities = List.of("Москва", "Санкт-Петербург", "Казань");
     private ScheduleConfig schedule = new ScheduleConfig();
     private SourcesConfig sources = new SourcesConfig();
     private DefaultsConfig defaults = new DefaultsConfig();
@@ -61,7 +66,6 @@ public class ParserProperties {
         private boolean enabled = true;
         private String baseUrl = "https://pro.culture.ru/api/2.5";
         private String apiKey = "";
-        private List<String> cities = List.of("Москва", "Санкт-Петербург");
         private int pageSize = 100;
         private int maxPages = 20;
         private long requestDelayMs = 500;
@@ -71,7 +75,6 @@ public class ParserProperties {
     public static class KudaGoConfig {
         private boolean enabled = true;
         private String baseUrl = "https://kudago.com/public-api/v1.4";
-        private List<String> locations = List.of("msk", "spb");
         private int pageSize = 100;
         private int maxPages = 50;
         private long requestDelayMs = 500;
@@ -83,7 +86,6 @@ public class ParserProperties {
         private boolean enabled = true;
         private String baseUrl = "https://ontp.timepad.ru/api";
         private String afishaUrl = "https://afisha.timepad.ru";
-        private List<String> cities = List.of("Москва", "Санкт-Петербург");
         /** Organizers taken in full, whatever the category (e.g. 254491 — «Москва в сердце», excursions). */
         private List<Long> organizations = List.of(254491L);
         private int limit = 100;
@@ -95,7 +97,6 @@ public class ParserProperties {
     public static class YandexAfishaConfig {
         private boolean enabled = true;
         private String baseUrl = "https://afisha.yandex.ru";
-        private List<String> cities = List.of("moscow", "spb");
         private long requestDelayMs = 1000;
     }
 

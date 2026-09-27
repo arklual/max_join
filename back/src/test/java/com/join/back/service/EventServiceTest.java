@@ -59,6 +59,9 @@ class EventServiceTest {
     @Mock
     private MatchService matchService;
 
+    @Mock
+    private CityScope cityScope;
+
     @InjectMocks
     private EventService eventService;
 
@@ -73,7 +76,7 @@ class EventServiceTest {
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
         , false, 0L);
 
-        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null);
+        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null, null);
 
         when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(eventPage);
         when(eventMapper.toCardResponse(event)).thenReturn(cardResponse);
@@ -97,7 +100,7 @@ class EventServiceTest {
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
         , false, 0L);
 
-        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null);
+        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null, null);
 
         when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(eventPage);
         when(eventMapper.toCardResponse(event)).thenReturn(cardResponse);
@@ -147,7 +150,7 @@ class EventServiceTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Event> emptyPage = new PageImpl<>(List.of(), pageable, 0);
 
-        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null);
+        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, null, null, null, null);
 
         when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(emptyPage);
 
@@ -168,7 +171,7 @@ class EventServiceTest {
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
         , false, 0L);
 
-        EventFilterRequest filter = new EventFilterRequest("concert", null, null, null, null, null, null, null);
+        EventFilterRequest filter = new EventFilterRequest("concert", null, null, null, null, null, null, null, null);
 
         when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(eventPage);
         when(eventMapper.toCardResponse(event)).thenReturn(cardResponse);
@@ -191,7 +194,7 @@ class EventServiceTest {
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
         , false, 0L);
 
-        EventFilterRequest filter = new EventFilterRequest(null, BigDecimal.valueOf(100), BigDecimal.valueOf(2000), null, null, null, null, null);
+        EventFilterRequest filter = new EventFilterRequest(null, BigDecimal.valueOf(100), BigDecimal.valueOf(2000), null, null, null, null, null, null);
 
         when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(eventPage);
         when(eventMapper.toCardResponse(event)).thenReturn(cardResponse);
@@ -213,7 +216,7 @@ class EventServiceTest {
                 BigDecimal.valueOf(1500), null, null, null, FIXED_DATE, FIXED_TIME, "Moscow", false, false
         , false, 0L);
 
-        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, List.of(EventType.MUSIC, EventType.SPORT), null, null);
+        EventFilterRequest filter = new EventFilterRequest(null, null, null, null, null, List.of(EventType.MUSIC, EventType.SPORT), null, null, null);
 
         when(eventRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(eventPage);
         when(eventMapper.toCardResponse(event)).thenReturn(cardResponse);

@@ -65,6 +65,9 @@ public class EngineerHistoryParser implements EventProvider {
         List<RawExternalEvent> result = new ArrayList<>();
 
         for (ParserProperties.EngineerHistoryConfig.Site site : config.getSites()) {
+            if (!parserProperties.getCities().contains(site.getCity())) {
+                continue;
+            }
             int before = result.size();
             for (int day = 0; day < config.getDaysAhead(); day++) {
                 LocalDate date = today.plusDays(day);

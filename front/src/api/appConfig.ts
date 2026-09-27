@@ -3,6 +3,8 @@ import apiClient from './client';
 export interface AppConfig {
   maxBotUsername: string;
   telegramBotUsername: string;
+  /** Cities JOIN serves (events are loaded only for them). */
+  cities: string[];
 }
 
 let cached: AppConfig | null = null;
@@ -17,11 +19,12 @@ export async function loadAppConfig(): Promise<AppConfig> {
       cached = {
         maxBotUsername: res.data.maxBotUsername ?? '',
         telegramBotUsername: res.data.telegramBotUsername ?? '',
+        cities: res.data.cities ?? [],
       };
       return cached;
     })
     .catch(() => {
-      cached = { maxBotUsername: '', telegramBotUsername: '' };
+      cached = { maxBotUsername: '', telegramBotUsername: '', cities: [] };
       return cached;
     })
     .finally(() => {

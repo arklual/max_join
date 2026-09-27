@@ -6,6 +6,7 @@ import Collapse from '@mui/material/Collapse';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import CreditCardOutlined from '@mui/icons-material/CreditCardOutlined';
 import FilterListOutlined from '@mui/icons-material/FilterListOutlined';
 import PeopleAltOutlined from '@mui/icons-material/PeopleAltOutlined';
@@ -18,6 +19,7 @@ import EventCard from '../components/EventCard';
 import PeopleFilters from '../components/PeopleFilters';
 import HowItWorksCard from '../components/HowItWorksCard';
 import { rememberProfileAge, usePushkinEligible } from '../utils/pushkin';
+import { useAppConfig } from '../hooks/useAppConfig';
 
 const PAGE_SIZE = 20;
 const INPUT_DEBOUNCE_MS = 350;
@@ -117,7 +119,13 @@ export default function AfishaScreen() {
     queryFilters.dateFrom === undefined &&
     queryFilters.dateTo === undefined &&
     !queryFilters.pushkinCard &&
+    queryFilters.city === undefined &&
     (!queryFilters.tagIds || queryFilters.tagIds.length === 0);
+
+  // The afisha shows the user's city if JOIN serves it (the server applies it when no city is chosen).
+  const servedCities = useAppConfig()?.cities ?? [];
+  const homeCity = profileCity && servedCities.includes(profileCity) ? profileCity : undefined;
+  const outsideServedCities = !!profileCity && servedCities.length > 0 && !homeCity;
 
   // The Pushkin card is for ages 14–22: they get a dedicated shelf and filter, others see nothing about it.
   const pushkinEligibility = usePushkinEligible();
@@ -226,6 +234,9 @@ export default function AfishaScreen() {
       if (filters.pushkinCard) {
         searchParams.append('pushkinCard', 'true');
       }
+      if (filters.city) {
+        searchParams.append('city', filters.city);
+      }
       url += '?' + searchParams.toString();
 
       const response = await apiClient.get<PageResponse<EventCardType>>(url);
@@ -326,6 +337,7 @@ export default function AfishaScreen() {
     filters.dateFrom !== undefined ||
     filters.dateTo !== undefined ||
     !!filters.pushkinCard ||
+    filters.city !== undefined ||
     (filters.tagIds && filters.tagIds.length > 0);
 
   const hasActiveSearchOrFilters = hasActiveFilters || search.trim() !== '';
@@ -402,6 +414,8 @@ export default function AfishaScreen() {
               onChange={handleFiltersChange}
               onReset={handleResetFilters}
               showPushkin={pushkinEligible}
+              cities={servedCities}
+              homeCity={homeCity}
             />
           </Box>
         </Collapse>
@@ -413,6 +427,13 @@ export default function AfishaScreen() {
       </Box>
 
       {!initialLoading && <HowItWorksCard />}
+
+      {outsideServedCities && (
+        <Alert severity="info" sx={{ borderRadius: 3 }}>
+          JOIN пока работает в городах: {servedCities.join(', ')}. Показываем события всех этих городов —
+          выбрать один можно в фильтрах.
+        </Alert>
+      )}
 
       {filters.pushkinCard && pushkinEligible && (
         <Box>

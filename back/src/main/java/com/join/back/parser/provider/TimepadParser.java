@@ -87,7 +87,7 @@ public class TimepadParser implements EventProvider {
             log.info("Timepad: {} events of organizer {}", result.size() - before, orgId);
         }
 
-        for (String city : config.getCities()) {
+        for (String city : parserProperties.getCities()) {
             Long cityId = resolveCityId(restClient, city);
             if (cityId == null) {
                 log.warn("Timepad: unknown city '{}', skipping", city);

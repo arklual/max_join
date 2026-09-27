@@ -32,15 +32,14 @@ telegram:
 
 parser:
   enabled: true
+  # Cities JOIN serves; each source loads the ones it covers (codes in CityCodes).
+  cities: ${JOIN_CITIES:Москва,Санкт-Петербург,Казань}
   schedule:
     cron: "0 0 3 * * *"
   sources:
     kudago:
       enabled: true
       base-url: https://kudago.com/public-api/v1.4
-      locations:
-        - msk
-        - spb
       page-size: 100
       max-pages: 50
       request-delay-ms: 500
@@ -48,9 +47,6 @@ parser:
       enabled: ${TIMEPAD_ENABLED:true}
       base-url: https://ontp.timepad.ru/api
       afisha-url: https://afisha.timepad.ru
-      cities:
-        - Москва
-        - Санкт-Петербург
       organizations:
         - 254491   # «Москва в сердце» — экскурсии
       limit: 100

@@ -3,6 +3,7 @@ package com.join.back.parser.provider;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.join.back.model.entity.EventSource;
+import com.join.back.parser.config.CityCodes;
 import com.join.back.parser.config.ParserProperties;
 import com.join.back.parser.dto.RawExternalEvent;
 import lombok.RequiredArgsConstructor;
@@ -31,20 +32,6 @@ public class KudaGoParser implements EventProvider {
     private static final ZoneId MOSCOW_TZ = ZoneId.of("Europe/Moscow");
     private static final String FIELDS = "id,title,description,categories,dates,price,images,location,place,site_url";
 
-    private static final java.util.Map<String, String> CITY_SLUG_MAP = java.util.Map.ofEntries(
-            java.util.Map.entry("msk", "Москва"),
-            java.util.Map.entry("spb", "Санкт-Петербург"),
-            java.util.Map.entry("nsk", "Новосибирск"),
-            java.util.Map.entry("ekb", "Екатеринбург"),
-            java.util.Map.entry("nnv", "Нижний Новгород"),
-            java.util.Map.entry("kzn", "Казань"),
-            java.util.Map.entry("smr", "Самара"),
-            java.util.Map.entry("krd", "Краснодар"),
-            java.util.Map.entry("sochi", "Сочи"),
-            java.util.Map.entry("ufa", "Уфа"),
-            java.util.Map.entry("krasnoyarsk", "Красноярск")
-    );
-
     private final ParserProperties parserProperties;
     private final ObjectMapper objectMapper;
 
@@ -69,7 +56,12 @@ public class KudaGoParser implements EventProvider {
                 .baseUrl(config.getBaseUrl())
                 .build();
 
-        for (String location : config.getLocations()) {
+        for (String city : parserProperties.getCities()) {
+            String location = CityCodes.kudago(city);
+            if (location == null) {
+                log.info("KudaGo doesn't cover {}, skipping", city);
+                continue;
+            }
             log.info("Fetching KudaGo events for location: {}", location);
             int page = 1;
             int totalFetched = 0;
@@ -165,19 +157,14 @@ public class KudaGoParser implements EventProvider {
             }
         }
 
-        // Date/time from dates[0].start
+        // Date/time of the nearest upcoming session: dates[0] is often a long-gone first run
+        // of a recurring event. Ongoing exhibitions without a dated session are skipped.
         LocalDate eventDate = null;
         LocalTime eventTime = null;
-        JsonNode datesNode = node.get("dates");
-        if (datesNode != null && datesNode.isArray() && !datesNode.isEmpty()) {
-            JsonNode firstDate = datesNode.get(0);
-            JsonNode startNode = firstDate.get("start");
-            if (startNode != null && !startNode.isNull()) {
-                long startTs = startNode.asLong();
-                ZonedDateTime zdt = Instant.ofEpochSecond(startTs).atZone(MOSCOW_TZ);
-                eventDate = zdt.toLocalDate();
-                eventTime = zdt.toLocalTime();
-            }
+        ZonedDateTime start = nearestUpcomingStart(node.get("dates"), LocalDate.now(MOSCOW_TZ));
+        if (start != null) {
+            eventDate = start.toLocalDate();
+            eventTime = start.toLocalTime();
         }
 
         if (eventDate == null) {
@@ -199,7 +186,7 @@ public class KudaGoParser implements EventProvider {
         }
 
         // Location - use the slug passed in (more reliable)
-        String city = CITY_SLUG_MAP.getOrDefault(locationSlug, locationSlug);
+        String city = java.util.Objects.requireNonNullElse(CityCodes.cityForKudago(locationSlug), locationSlug);
 
         // Ticket URL
         String ticketUrl = getTextSafe(node, "site_url");
@@ -217,6 +204,25 @@ public class KudaGoParser implements EventProvider {
                 .ticketUrl(ticketUrl)
                 .city(city)
                 .build();
+    }
+
+    /** Earliest session starting today or later, in Moscow time; null if there is none. */
+    static ZonedDateTime nearestUpcomingStart(JsonNode dates, LocalDate today) {
+        ZonedDateTime nearest = null;
+        if (dates == null || !dates.isArray()) {
+            return null;
+        }
+        for (JsonNode date : dates) {
+            JsonNode startNode = date.get("start");
+            if (startNode == null || !startNode.canConvertToLong() || startNode.asLong() <= 0) {
+                continue;
+            }
+            ZonedDateTime start = Instant.ofEpochSecond(startNode.asLong()).atZone(MOSCOW_TZ);
+            if (!start.toLocalDate().isBefore(today) && (nearest == null || start.isBefore(nearest))) {
+                nearest = start;
+            }
+        }
+        return nearest;
     }
 
     private String getTextSafe(JsonNode node, String field) {

@@ -55,7 +55,7 @@ public class CultureRuParser implements EventProvider {
         List<RawExternalEvent> result = new ArrayList<>();
         long now = Instant.now().toEpochMilli();
 
-        for (String city : config.getCities()) {
+        for (String city : parserProperties.getCities()) {
             int offset = 0;
             for (int page = 0; page < config.getMaxPages(); page++) {
                 final int currentOffset = offset;

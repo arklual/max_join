@@ -15,6 +15,8 @@ public record EventFilterRequest(
         List<EventType> type,
         List<Long> tagIds,
         /** Only events payable with the Pushkin card. */
-        Boolean pushkinCard
+        Boolean pushkinCard,
+        /** A served city, "all", or null for the user's own city — see {@link com.join.back.service.CityScope}. */
+        String city
 ) {
 }

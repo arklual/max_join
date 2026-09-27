@@ -23,12 +23,14 @@ public class ConfigController {
 
     private final MaxBotInfoService maxBotInfoService;
     private final TelegramBotInfoService telegramBotInfoService;
+    private final com.join.back.service.CityScope cityScope;
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
         Map<String, Object> body = new HashMap<>();
         body.put("maxBotUsername", maxBotInfoService.getUsername());
         body.put("telegramBotUsername", telegramBotInfoService.getUsername());
+        body.put("cities", cityScope.servedCities());
         return ResponseEntity.ok(body);
     }
 }

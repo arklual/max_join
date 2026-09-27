@@ -31,7 +31,7 @@ class YandexAfishaPriceTest {
     @Test
     void takesLowestPriceAndPushkinFlagFromSchedule() {
         List<RawExternalEvent> events = new YandexAfishaParser(null)
-                .parseApolloState(STATE, "moscow", "https://afisha.yandex.ru");
+                .parseApolloState(STATE, "Москва", "https://afisha.yandex.ru");
 
         RawExternalEvent theatre = events.stream().filter(e -> e.getExternalId().equals("aa01")).findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("1500").compareTo(theatre.getMinPrice()));

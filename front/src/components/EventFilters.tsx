@@ -24,13 +24,21 @@ interface EventFiltersProps {
   onReset?: () => void;
   /** The Pushkin card switch — only for users of card age (14–22). */
   showPushkin?: boolean;
+  /** Cities JOIN serves; a switch is shown when there is more than one. */
+  cities?: string[];
+  /** The user's city if JOIN serves it — what the afisha shows by default. */
+  homeCity?: string;
 }
+
+const ALL_CITIES = 'all';
 
 // Survives remounts (the panel is unmounted when collapsed), so selected tags
 // that aren't among the popular ones keep their chips.
 const tagCache = new Map<number, Tag>();
 
-export default function EventFilters({ filters, onChange, onReset, showPushkin = false }: EventFiltersProps) {
+export default function EventFilters({
+  filters, onChange, onReset, showPushkin = false, cities = [], homeCity,
+}: EventFiltersProps) {
   const [popularTags, setPopularTags] = useState<Tag[]>([]);
   const [searchResults, setSearchResults] = useState<Tag[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -115,7 +123,16 @@ export default function EventFilters({ filters, onChange, onReset, showPushkin =
     filters.dateFrom !== undefined ||
     filters.dateTo !== undefined ||
     !!filters.pushkinCard ||
+    filters.city !== undefined ||
     selectedIds.length > 0;
+
+  const shownCity = filters.city ?? homeCity ?? ALL_CITIES;
+
+  function selectCity(city: string) {
+    // The user's own city is the default, so it is stored as "no choice".
+    const home = homeCity ?? ALL_CITIES;
+    onChange({ ...filters, city: city === home ? undefined : city });
+  }
 
   return (
     <Box
@@ -129,6 +146,27 @@ export default function EventFilters({ filters, onChange, onReset, showPushkin =
         border: `1px solid ${theme.palette.outlineVariant.main}`,
       })}
     >
+      {/* City */}
+      {cities.length > 1 && (
+        <Stack spacing={0.75}>
+          <Typography variant="caption" sx={(theme) => ({ color: theme.palette.onSurfaceVariant.main, fontWeight: 600 })}>
+            Город
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {[...cities, ALL_CITIES].map((city) => (
+              <Chip
+                key={city}
+                label={city === ALL_CITIES ? 'Все города' : city}
+                size="small"
+                color={shownCity === city ? 'primary' : 'default'}
+                variant={shownCity === city ? 'filled' : 'outlined'}
+                onClick={() => selectCity(city)}
+              />
+            ))}
+          </Box>
+        </Stack>
+      )}
+
       {/* Pushkin card */}
       {showPushkin && (
         <FormControlLabel

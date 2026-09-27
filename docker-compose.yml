@@ -72,6 +72,8 @@ services:
       AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.aiproductiv.ru/v1}
       AI_MODEL: ${AI_MODEL:-gpt-6-luna}
+      JOIN_CITIES: ${JOIN_CITIES:-Москва,Санкт-Петербург,Казань}
+      CULTURE_RU_API_KEY: ${CULTURE_RU_API_KEY:-}
       TICKETTOSHOW_REF_CODE: ${TICKETTOSHOW_REF_CODE:-}
       TICKETTOSHOW_UTM_QUERY: ${TICKETTOSHOW_UTM_QUERY:-}
       JWT_SECRET: ${JWT_SECRET}

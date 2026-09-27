@@ -34,10 +34,15 @@ public class EventService {
     private final EventLikeRepository eventLikeRepository;
     private final UserRepository userRepository;
     private final MatchService matchService;
+    private final CityScope cityScope;
 
     @Transactional(readOnly = true, transactionManager = "transactionManager")
     public Page<EventCardResponse> getEvents(EventFilterRequest filter, Pageable pageable, Long userId) {
         Specification<Event> spec = buildSpecification(filter);
+        String city = cityScope.resolve(filter.city(), userId);
+        if (city != null) {
+            spec = spec.and(EventSpecification.inCity(city));
+        }
 
         Page<Event> eventPage = eventRepository.findAll(spec, pageable);
 
@@ -106,6 +111,7 @@ public class EventService {
 
         Set<Long> likedEventIds = eventLikeRepository.findEventIdsByUserId(userId);
         Set<Long> tagIds = eventLikeRepository.findTagIdsByUserId(userId);
+        String city = cityScope.resolve(null, userId);
 
         // If user has no likes, fall back to their interest-based types
         if (tagIds.isEmpty() && likedEventIds.isEmpty()) {
@@ -113,6 +119,9 @@ public class EventService {
             if (user != null && user.getInterests() != null && !user.getInterests().isEmpty()) {
                 Specification<Event> spec = Specification.where(EventSpecification.futureOrToday())
                         .and(EventSpecification.typeIn(user.getInterests()));
+                if (city != null) {
+                    spec = spec.and(EventSpecification.inCity(city));
+                }
                 Pageable pageable = PageRequest.of(0, limit, Sort.by("eventDate").ascending());
                 return eventRepository.findAll(spec, pageable).getContent().stream()
                         .map(event -> eventMapper.toCardResponse(event))
@@ -123,6 +132,9 @@ public class EventService {
 
         // Find future events with matching tags, excluding already liked events
         Specification<Event> spec = Specification.where(EventSpecification.futureOrToday());
+        if (city != null) {
+            spec = spec.and(EventSpecification.inCity(city));
+        }
         if (!tagIds.isEmpty()) {
             spec = spec.and(EventSpecification.hasTagIds(tagIds.stream().toList()));
         }

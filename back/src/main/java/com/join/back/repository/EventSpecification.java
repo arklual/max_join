@@ -63,6 +63,10 @@ public final class EventSpecification {
                 root.get("type").in(types);
     }
 
+    public static Specification<Event> inCity(String city) {
+        return (root, query, cb) -> cb.equal(root.get("city"), city);
+    }
+
     public static Specification<Event> pushkinCard() {
         return (root, query, cb) -> cb.isTrue(root.get("pushkinCard"));
     }

@@ -1,6 +1,7 @@
 package com.join.back.parser.provider;
 
 import com.join.back.model.entity.EventSource;
+import com.join.back.parser.config.CityCodes;
 import com.join.back.parser.config.ParserProperties;
 import com.join.back.parser.dto.RawExternalEvent;
 import lombok.RequiredArgsConstructor;
@@ -80,22 +81,6 @@ public class YandexAfishaParser implements EventProvider {
             "\"__typename\":\"Tag\",\"code\":\"([^\"]+)\""
     );
 
-    // City name mapping from URL slug to Russian name
-    private static final Map<String, String> CITY_MAP = Map.of(
-            "moscow", "Москва",
-            "spb", "Санкт-Петербург",
-            "novosibirsk", "Новосибирск",
-            "ekaterinburg", "Екатеринбург",
-            "kazan", "Казань",
-            "krasnodar", "Краснодар",
-            "sochi", "Сочи"
-    );
-
-    // Config city codes whose Yandex Afisha URL slug differs ("spb" redirects away).
-    private static final Map<String, String> URL_SLUG = Map.of(
-            "spb", "saint-petersburg"
-    );
-
     /** Yandex Afisha selection of events payable with the Pushkin card. */
     static final String PUSHKIN_SELECTION = "/selections/all-events-pushkin-card";
 
@@ -118,10 +103,15 @@ public class YandexAfishaParser implements EventProvider {
         List<RawExternalEvent> result = new ArrayList<>();
         RestClient restClient = buildRestClient();
 
-        for (String city : config.getCities()) {
+        for (String city : parserProperties.getCities()) {
+            String slug = CityCodes.yandexAfisha(city);
+            if (slug == null) {
+                log.info("Yandex Afisha: no URL slug for {}, skipping", city);
+                continue;
+            }
             log.info("Fetching Yandex Afisha events for city: {}", city);
             try {
-                String html = fetchCityPage(restClient, config.getBaseUrl(), city);
+                String html = fetchCityPage(restClient, config.getBaseUrl(), slug);
                 if (html == null || html.isBlank()) {
                     log.warn("Empty response from Yandex Afisha for city: {}", city);
                     continue;
@@ -141,7 +131,7 @@ public class YandexAfishaParser implements EventProvider {
                 if (config.getRequestDelayMs() > 0) {
                     Thread.sleep(config.getRequestDelayMs());
                 }
-                List<RawExternalEvent> pushkinEvents = fetchPushkinSelection(restClient, config.getBaseUrl(), city);
+                List<RawExternalEvent> pushkinEvents = fetchPushkinSelection(restClient, config.getBaseUrl(), slug, city);
                 log.info("Parsed {} Pushkin-card events from Yandex Afisha for city: {}", pushkinEvents.size(), city);
                 result.addAll(pushkinEvents);
 
@@ -174,10 +164,10 @@ public class YandexAfishaParser implements EventProvider {
                 .build();
     }
 
-    private List<RawExternalEvent> fetchPushkinSelection(RestClient restClient, String baseUrl, String city) {
+    private List<RawExternalEvent> fetchPushkinSelection(RestClient restClient, String baseUrl, String slug, String city) {
         try {
             String html = restClient.get()
-                    .uri(baseUrl + "/" + urlSlug(city) + PUSHKIN_SELECTION)
+                    .uri(baseUrl + "/" + slug + PUSHKIN_SELECTION)
                     .retrieve()
                     .body(String.class);
             String apolloScript = html == null ? null : extractApolloStateScript(html);
@@ -217,13 +207,9 @@ public class YandexAfishaParser implements EventProvider {
         return parts.length >= 4 ? RUBRIC_CATEGORY.get(parts[2]) : null;
     }
 
-    private static String urlSlug(String city) {
-        return URL_SLUG.getOrDefault(city, city);
-    }
-
-    private String fetchCityPage(RestClient restClient, String baseUrl, String city) {
+    private String fetchCityPage(RestClient restClient, String baseUrl, String slug) {
         return restClient.get()
-                .uri(baseUrl + "/" + urlSlug(city))
+                .uri(baseUrl + "/" + slug)
                 .retrieve()
                 .body(String.class);
     }
@@ -283,7 +269,8 @@ public class YandexAfishaParser implements EventProvider {
         return min == null ? null : BigDecimal.valueOf(min).divide(BigDecimal.valueOf(100));
     }
 
-    List<RawExternalEvent> parseApolloState(String script, String citySlug, String baseUrl) {
+    /** {@code city} — Russian city name the page belongs to. */
+    List<RawExternalEvent> parseApolloState(String script, String city, String baseUrl) {
         List<RawExternalEvent> events = new ArrayList<>();
 
         // Step 1: extract (eventId → firstDate, prices) from ActualEvent blocks.
@@ -310,10 +297,10 @@ public class YandexAfishaParser implements EventProvider {
             }
         }
 
-        log.debug("Found {} ActualEvent entries for city {}", eventIdToFirstDate.size(), citySlug);
+        log.debug("Found {} ActualEvent entries for city {}", eventIdToFirstDate.size(), city);
 
         // Step 2: for each event ID, find its EventPreview block and parse
-        String cityName = CITY_MAP.getOrDefault(citySlug, toTitleCase(citySlug));
+        String cityName = city;
 
         Matcher previewKeyMatcher = EVENT_PREVIEW_KEY_PATTERN.matcher(script);
         while (previewKeyMatcher.find()) {
@@ -522,10 +509,4 @@ public class YandexAfishaParser implements EventProvider {
         return sb.toString();
     }
 
-    private String toTitleCase(String input) {
-        if (input == null || input.isBlank()) {
-            return input;
-        }
-        return Character.toUpperCase(input.charAt(0)) + input.substring(1).toLowerCase();
-    }
 }

@@ -88,6 +88,19 @@ export interface Outing {
   companions: OutingCompanion[];
   chatId: number | null;
   groupChatId: number | null;
+  /** Both confirmed "we agreed to go together" (pairs only). */
+  agreed: boolean;
+}
+
+export type OutingAgreement = 'NONE' | 'PROPOSED_BY_ME' | 'PROPOSED_BY_COMPANION' | 'AGREED';
+
+/** A match chat's plan: "договорились пойти вместе?" and, after the event, "сходили вместе?". */
+export interface OutingState {
+  chatId: number;
+  agreement: OutingAgreement;
+  eventPassed: boolean;
+  went: 'WENT' | 'NOT_WENT' | null;
+  companionWent: 'WENT' | 'NOT_WENT' | null;
 }
 
 export interface EventDetail extends EventCard {
@@ -111,6 +124,8 @@ export interface EventFilters {
   tagIds?: number[];
   /** Only events payable with the Pushkin card. */
   pushkinCard?: boolean;
+  /** Another served city or 'all'; unset — the user's own city. */
+  city?: string;
 }
 
 export interface PageResponse<T> {

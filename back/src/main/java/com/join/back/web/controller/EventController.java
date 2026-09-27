@@ -41,9 +41,11 @@ public class EventController extends BaseAuthController {
             @RequestParam(required = false) List<EventType> type,
             @RequestParam(required = false) List<Long> tagIds,
             @RequestParam(required = false) Boolean pushkinCard,
+            @RequestParam(required = false) String city,
             Pageable pageable
     ) {
-        EventFilterRequest filter = new EventFilterRequest(search, minPrice, maxPrice, dateFrom, dateTo, type, tagIds, pushkinCard);
+        EventFilterRequest filter = new EventFilterRequest(search, minPrice, maxPrice, dateFrom, dateTo, type, tagIds,
+                pushkinCard, city);
         Long userId = getCurrentUserIdOrNull();
         return ResponseEntity.ok(eventService.getEvents(filter, pageable, userId));
     }
