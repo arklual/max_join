@@ -157,6 +157,8 @@ public class AdminController {
             chatMessageRepository.deleteByChatIdIn(chatIds);
             chatIceBreakerRepository.deleteByChatIdIn(chatIds);
             chatRepository.deleteAll(userChats);
+            // Chats reference matches; flush before the bulk match delete below.
+            chatRepository.flush();
         }
 
         // 4. Delete matches
