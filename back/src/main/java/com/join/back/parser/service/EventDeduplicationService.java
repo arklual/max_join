@@ -14,7 +14,8 @@ import java.util.Optional;
 /**
  * Handles event deduplication.
  * Strategy: deduplicate by source + external_id (unique constraint in DB).
- * If event already exists - update it; if not - create new.
+ * If event already exists - update it; if not - create new — unless another source already has
+ * the same event (same city, date and title): then that card is enriched instead of showing a twin.
  */
 @Slf4j
 @Service
@@ -47,12 +48,69 @@ public class EventDeduplicationService {
             log.debug("Updated existing event source={} externalId={}",
                     event.getSource(), event.getExternalId());
             return DeduplicationResult.UPDATED;
-        } else {
-            eventRepository.save(event);
-            log.debug("Created new event source={} externalId={}",
-                    event.getSource(), event.getExternalId());
-            return DeduplicationResult.CREATED;
         }
+
+        Optional<Event> twin = findTwinFromOtherSource(event);
+        if (twin.isPresent()) {
+            enrichTwin(twin.get(), event);
+            log.debug("Merged event source={} externalId={} into {} #{}",
+                    event.getSource(), event.getExternalId(), twin.get().getSource(), twin.get().getId());
+            return DeduplicationResult.SKIPPED;
+        }
+
+        eventRepository.save(event);
+        log.debug("Created new event source={} externalId={}",
+                event.getSource(), event.getExternalId());
+        return DeduplicationResult.CREATED;
+    }
+
+    /** The same event already loaded from another source: same city, date and normalized title. */
+    private Optional<Event> findTwinFromOtherSource(Event event) {
+        if (event.getCity() == null || event.getEventDate() == null || event.getTitle() == null) {
+            return Optional.empty();
+        }
+        String key = titleKey(event.getTitle());
+        if (key.isEmpty()) {
+            return Optional.empty();
+        }
+        return eventRepository.findByCityAndEventDate(event.getCity(), event.getEventDate()).stream()
+                .filter(other -> other.getSource() != event.getSource())
+                .filter(other -> key.equals(titleKey(other.getTitle())))
+                .findFirst();
+    }
+
+    /** Keeps the first card, adding what the second source knows better. */
+    private void enrichTwin(Event existing, Event duplicate) {
+        boolean changed = false;
+        if (duplicate.isPushkinCard() && !existing.isPushkinCard()) {
+            existing.setPushkinCard(true);
+            changed = true;
+        }
+        if (existing.getPrice() == null && duplicate.getPrice() != null) {
+            existing.setPrice(duplicate.getPrice());
+            changed = true;
+        }
+        if (existing.getEventTime() == null && duplicate.getEventTime() != null) {
+            existing.setEventTime(duplicate.getEventTime());
+            changed = true;
+        }
+        if (existing.getImageUrl() == null && duplicate.getImageUrl() != null) {
+            existing.setImageUrl(duplicate.getImageUrl());
+            changed = true;
+        }
+        if (changed) {
+            existing.setUpdatedAt(LocalDateTime.now());
+            eventRepository.save(existing);
+        }
+    }
+
+    /** "Концерт «Мельница» (16+)" and "КОНЦЕРТ МЕЛЬНИЦА 16+" → "концерт мельница". */
+    static String titleKey(String title) {
+        return title.toLowerCase(java.util.Locale.ROOT)
+                .replace('ё', 'е')
+                .replaceAll("\\b\\d{1,2}\\s*\\+", " ")
+                .replaceAll("[^\\p{L}\\p{N}]+", " ")
+                .trim();
     }
 
     private void updateFields(Event existing, Event updated) {

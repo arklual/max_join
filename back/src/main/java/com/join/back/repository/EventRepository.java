@@ -18,6 +18,8 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     List<Event> findByEventDate(LocalDate eventDate);
 
+    List<Event> findByCityAndEventDate(String city, LocalDate eventDate);
+
     List<Event> findTop5ByPushkinCardTrueAndHiddenFalseAndStatusAndCityAndEventDateGreaterThanEqualOrderByEventDateAscEventTimeAsc(
             EventStatus status, String city, LocalDate from);
 
