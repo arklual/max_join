@@ -29,7 +29,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KudaGoParser implements EventProvider {
 
-    private static final ZoneId MOSCOW_TZ = ZoneId.of("Europe/Moscow");
     private static final String FIELDS = "id,title,description,categories,dates,price,images,location,place,site_url";
 
     private final ParserProperties parserProperties;
@@ -161,7 +160,9 @@ public class KudaGoParser implements EventProvider {
         // of a recurring event. Ongoing exhibitions without a dated session are skipped.
         LocalDate eventDate = null;
         LocalTime eventTime = null;
-        ZonedDateTime start = nearestUpcomingStart(node.get("dates"), LocalDate.now(MOSCOW_TZ));
+        String city = java.util.Objects.requireNonNullElse(CityCodes.cityForKudago(locationSlug), locationSlug);
+        ZoneId zone = CityCodes.zone(city);
+        ZonedDateTime start = nearestUpcomingStart(node.get("dates"), LocalDate.now(zone), zone);
         if (start != null) {
             eventDate = start.toLocalDate();
             eventTime = start.toLocalTime();
@@ -186,7 +187,6 @@ public class KudaGoParser implements EventProvider {
         }
 
         // Location - use the slug passed in (more reliable)
-        String city = java.util.Objects.requireNonNullElse(CityCodes.cityForKudago(locationSlug), locationSlug);
 
         // Ticket URL
         String ticketUrl = getTextSafe(node, "site_url");
@@ -206,8 +206,8 @@ public class KudaGoParser implements EventProvider {
                 .build();
     }
 
-    /** Earliest session starting today or later, in Moscow time; null if there is none. */
-    static ZonedDateTime nearestUpcomingStart(JsonNode dates, LocalDate today) {
+    /** Earliest session starting today or later, in the city's time zone; null if there is none. */
+    static ZonedDateTime nearestUpcomingStart(JsonNode dates, LocalDate today, ZoneId zone) {
         ZonedDateTime nearest = null;
         if (dates == null || !dates.isArray()) {
             return null;
@@ -217,7 +217,7 @@ public class KudaGoParser implements EventProvider {
             if (startNode == null || !startNode.canConvertToLong() || startNode.asLong() <= 0) {
                 continue;
             }
-            ZonedDateTime start = Instant.ofEpochSecond(startNode.asLong()).atZone(MOSCOW_TZ);
+            ZonedDateTime start = Instant.ofEpochSecond(startNode.asLong()).atZone(zone);
             if (!start.toLocalDate().isBefore(today) && (nearest == null || start.isBefore(nearest))) {
                 nearest = start;
             }

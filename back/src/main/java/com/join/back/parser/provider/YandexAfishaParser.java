@@ -18,6 +18,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -111,34 +112,26 @@ public class YandexAfishaParser implements EventProvider {
             }
             log.info("Fetching Yandex Afisha events for city: {}", city);
             try {
-                String html = fetchCityPage(restClient, config.getBaseUrl(), slug);
-                if (html == null || html.isBlank()) {
-                    log.warn("Empty response from Yandex Afisha for city: {}", city);
-                    continue;
+                // Pages that render their event lists server-side (rubric lists like /concert load in the browser).
+                Map<String, RawExternalEvent> cityEvents = new LinkedHashMap<>();
+                for (String page : config.getPages()) {
+                    String path = page.isBlank() ? slug : slug + "/" + page;
+                    for (RawExternalEvent event : fetchPage(restClient, config.getBaseUrl(), path, city)) {
+                        cityEvents.putIfAbsent(event.getExternalId(), event);
+                    }
+                    Thread.sleep(config.getRequestDelayMs());
                 }
-
-                String apolloScript = extractApolloStateScript(html);
-                if (apolloScript == null) {
-                    log.warn("Could not find __APOLLO_STATE__ script for city: {}", city);
-                    continue;
+                // Pushkin-card selection: flags events payable with the card.
+                for (RawExternalEvent event : fetchPage(restClient, config.getBaseUrl(), slug + PUSHKIN_SELECTION, city)) {
+                    event.setPushkinCard(true);
+                    RawExternalEvent known = cityEvents.putIfAbsent(event.getExternalId(), event);
+                    if (known != null) {
+                        known.setPushkinCard(true);
+                    }
                 }
-
-                List<RawExternalEvent> cityEvents = parseApolloState(apolloScript, city, config.getBaseUrl());
+                Thread.sleep(config.getRequestDelayMs());
                 log.info("Parsed {} events from Yandex Afisha for city: {}", cityEvents.size(), city);
-                result.addAll(cityEvents);
-
-                // Pushkin-card selection: same events, flagged as payable with the card.
-                if (config.getRequestDelayMs() > 0) {
-                    Thread.sleep(config.getRequestDelayMs());
-                }
-                List<RawExternalEvent> pushkinEvents = fetchPushkinSelection(restClient, config.getBaseUrl(), slug, city);
-                log.info("Parsed {} Pushkin-card events from Yandex Afisha for city: {}", pushkinEvents.size(), city);
-                result.addAll(pushkinEvents);
-
-                if (config.getRequestDelayMs() > 0) {
-                    Thread.sleep(config.getRequestDelayMs());
-                }
-
+                result.addAll(cityEvents.values());
             } catch (RestClientException e) {
                 log.error("HTTP error fetching Yandex Afisha for city {}: {}", city, e.getMessage());
             } catch (InterruptedException e) {
@@ -164,22 +157,21 @@ public class YandexAfishaParser implements EventProvider {
                 .build();
     }
 
-    private List<RawExternalEvent> fetchPushkinSelection(RestClient restClient, String baseUrl, String slug, String city) {
+    /** One Afisha page ({@code <slug>/<path>}) → its server-rendered events; empty on errors. */
+    private List<RawExternalEvent> fetchPage(RestClient restClient, String baseUrl, String path, String city) {
         try {
             String html = restClient.get()
-                    .uri(baseUrl + "/" + slug + PUSHKIN_SELECTION)
+                    .uri(baseUrl + "/" + path)
                     .retrieve()
                     .body(String.class);
             String apolloScript = html == null ? null : extractApolloStateScript(html);
             if (apolloScript == null) {
-                log.warn("No Pushkin-card selection state for city: {}", city);
+                log.warn("Yandex Afisha: no Apollo state on /{}", path);
                 return List.of();
             }
-            List<RawExternalEvent> events = parseApolloState(apolloScript, city, baseUrl);
-            events.forEach(e -> e.setPushkinCard(true));
-            return events;
+            return parseApolloState(apolloScript, city, baseUrl);
         } catch (RestClientException e) {
-            log.warn("HTTP error fetching Yandex Pushkin-card selection for {}: {}", city, e.getMessage());
+            log.warn("Yandex Afisha: HTTP error on /{}: {}", path, e.getMessage());
             return List.of();
         }
     }
@@ -205,13 +197,6 @@ public class YandexAfishaParser implements EventProvider {
         String[] parts = url.replaceFirst("^https?://[^/]+", "").split("/");
         // ["", city, rubric, slug]
         return parts.length >= 4 ? RUBRIC_CATEGORY.get(parts[2]) : null;
-    }
-
-    private String fetchCityPage(RestClient restClient, String baseUrl, String slug) {
-        return restClient.get()
-                .uri(baseUrl + "/" + slug)
-                .retrieve()
-                .body(String.class);
     }
 
     /**
@@ -447,7 +432,8 @@ public class YandexAfishaParser implements EventProvider {
         }
 
         return RawExternalEvent.builder()
-                .externalId(eventId)
+                // Touring shows keep one id across cities: make it per city.
+                .externalId(eventId + "@" + java.util.Objects.requireNonNullElse(CityCodes.yandexAfisha(city), city))
                 .source(EventSource.YANDEX_AFISHA)
                 .title(title)
                 .description(description)

@@ -16,7 +16,9 @@ public class ParserProperties {
      * Cities JOIN serves (Russian names, env {@code JOIN_CITIES}). Every source loads events for these
      * cities that it covers (codes in {@link CityCodes}); the afisha is filtered by the user's city among them.
      */
-    private List<String> cities = List.of("Москва", "Санкт-Петербург", "Казань");
+    private List<String> cities = List.of("Москва", "Санкт-Петербург", "Новосибирск", "Екатеринбург", "Казань",
+            "Нижний Новгород", "Красноярск", "Челябинск", "Самара", "Уфа", "Ростов-на-Дону", "Краснодар", "Омск",
+            "Воронеж", "Пермь", "Волгоград");
     private ScheduleConfig schedule = new ScheduleConfig();
     private SourcesConfig sources = new SourcesConfig();
     private DefaultsConfig defaults = new DefaultsConfig();
@@ -36,6 +38,28 @@ public class ParserProperties {
         private NovayaOperaConfig novayaOpera = new NovayaOperaConfig();
         private CultureRuConfig cultureRu = new CultureRuConfig();
         private EngineerHistoryConfig engineerHistory = new EngineerHistoryConfig();
+        private KassirConfig kassir = new KassirConfig();
+    }
+
+    /**
+     * Kassir.ru — the biggest regional ticket seller, a host per city. Its site's own JSON API
+     * ({@code /page-kit}) needs no token.
+     */
+    @Data
+    public static class KassirConfig {
+        private boolean enabled = true;
+        private String baseUrl = "https://api.kassir.ru/api";
+        /**
+         * Category pages to load (leisure only: no kids, courses, cinema sessions or permanent museum
+         * exhibitions).
+         */
+        private List<String> categories = List.of("bilety-na-koncert", "bilety-v-teatr", "bilety-na-shou",
+                "bilety-na-standup", "bilety-na-festival", "bilety-na-sportivnye-meropriyatiya",
+                "bilety-na-vystavki", "bilety-na-ekskursii");
+        private int daysAhead = 60;
+        private int pageSize = 200;
+        private int maxPages = 5;
+        private long requestDelayMs = 500;
     }
 
     /** «Москва/Питер глазами инженера» — excursion agency; its day afisha pages are parsed. */
@@ -97,6 +121,12 @@ public class ParserProperties {
     public static class YandexAfishaConfig {
         private boolean enabled = true;
         private String baseUrl = "https://afisha.yandex.ru";
+        /**
+         * City pages whose event lists are rendered server-side ("" — the city front page). Rubric lists
+         * like /concert and /theatre load in the browser and are empty in HTML.
+         */
+        private List<String> pages = List.of("", "selections/hot", "selections/weekend", "art", "standup",
+                "musical", "excursions");
         private long requestDelayMs = 1000;
     }
 

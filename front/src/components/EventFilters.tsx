@@ -4,6 +4,7 @@ import type { EventFilters as EventFiltersType, Tag } from '../types';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import MenuItem from '@mui/material/MenuItem';
 import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -152,18 +153,19 @@ export default function EventFilters({
           <Typography variant="caption" sx={(theme) => ({ color: theme.palette.onSurfaceVariant.main, fontWeight: 600 })}>
             Город
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+          <TextField
+            select
+            size="small"
+            value={shownCity}
+            onChange={(e) => selectCity(e.target.value)}
+            fullWidth
+          >
             {[...cities, ALL_CITIES].map((city) => (
-              <Chip
-                key={city}
-                label={city === ALL_CITIES ? 'Все города' : city}
-                size="small"
-                color={shownCity === city ? 'primary' : 'default'}
-                variant={shownCity === city ? 'filled' : 'outlined'}
-                onClick={() => selectCity(city)}
-              />
+              <MenuItem key={city} value={city}>
+                {city === ALL_CITIES ? 'Все города' : city === homeCity ? `${city} — мой город` : city}
+              </MenuItem>
             ))}
-          </Box>
+          </TextField>
         </Stack>
       )}
 

@@ -33,12 +33,12 @@ class YandexAfishaPriceTest {
         List<RawExternalEvent> events = new YandexAfishaParser(null)
                 .parseApolloState(STATE, "Москва", "https://afisha.yandex.ru");
 
-        RawExternalEvent theatre = events.stream().filter(e -> e.getExternalId().equals("aa01")).findFirst().orElseThrow();
+        RawExternalEvent theatre = events.stream().filter(e -> e.getExternalId().equals("aa01@moscow")).findFirst().orElseThrow();
         assertEquals(0, new BigDecimal("1500").compareTo(theatre.getMinPrice()));
         assertEquals("от 1500 руб.", theatre.getRawPrice());
         assertTrue(theatre.isPushkinCard());
 
-        RawExternalEvent concert = events.stream().filter(e -> e.getExternalId().equals("bb02")).findFirst().orElseThrow();
+        RawExternalEvent concert = events.stream().filter(e -> e.getExternalId().equals("bb02@moscow")).findFirst().orElseThrow();
         assertNull(concert.getMinPrice());
         assertFalse(concert.isPushkinCard());
     }

@@ -430,8 +430,8 @@ export default function AfishaScreen() {
 
       {outsideServedCities && (
         <Alert severity="info" sx={{ borderRadius: 3 }}>
-          JOIN пока работает в городах: {servedCities.join(', ')}. Показываем события всех этих городов —
-          выбрать один можно в фильтрах.
+          В городе «{profileCity}» JOIN пока не работает — показываем события всех {servedCities.length} городов,
+          где он есть. Выбрать город можно в фильтрах.
         </Alert>
       )}
 

@@ -87,3 +87,5 @@ databaseChangeLog:
       file: db/changelog/045-create-user-blocks-table.yaml
   - include:
       file: db/changelog/046-create-outing-confirmations-table.yaml
+  - include:
+      file: db/changelog/047-yandex-external-id-per-city.yaml

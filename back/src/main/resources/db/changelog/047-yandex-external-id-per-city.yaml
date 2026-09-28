@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 047-yandex-external-id-per-city
+      author: join-team
+      comment: Yandex Afisha ids are shared by a touring show across cities — make them per city (<id>@<city slug>).
+      changes:
+        - sql:
+            sql: >
+              UPDATE events SET external_id = external_id || '@' ||
+                CASE city WHEN 'Москва' THEN 'moscow'
+                          WHEN 'Санкт-Петербург' THEN 'saint-petersburg'
+                          WHEN 'Казань' THEN 'kazan' END
+              WHERE source = 'YANDEX_AFISHA' AND external_id NOT LIKE '%@%'
+                AND city IN ('Москва', 'Санкт-Петербург', 'Казань')

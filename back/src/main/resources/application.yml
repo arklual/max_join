@@ -33,7 +33,8 @@ telegram:
 parser:
   enabled: true
   # Cities JOIN serves; each source loads the ones it covers (codes in CityCodes).
-  cities: ${JOIN_CITIES:Москва,Санкт-Петербург,Казань}
+  # All Russian cities with a population over a million.
+  cities: ${JOIN_CITIES:Москва,Санкт-Петербург,Новосибирск,Екатеринбург,Казань,Нижний Новгород,Красноярск,Челябинск,Самара,Уфа,Ростов-на-Дону,Краснодар,Омск,Воронеж,Пермь,Волгоград}
   schedule:
     cron: "0 0 3 * * *"
   sources:
@@ -52,6 +53,11 @@ parser:
       limit: 100
       max-pages: 15
       request-delay-ms: 300
+    kassir:
+      enabled: ${KASSIR_ENABLED:true}
+      days-ahead: 60
+      max-pages: 5
+      request-delay-ms: 500
     engineer-history:
       enabled: ${ENGINEER_HISTORY_ENABLED:true}
       sites:

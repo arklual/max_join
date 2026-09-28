@@ -44,7 +44,13 @@ public class TickettoshowParser implements EventProvider {
             "Краснодар",
             "Сочи",
             "Уфа",
-            "Красноярск"
+            "Красноярск",
+            "Челябинск",
+            "Ростов-на-Дону",
+            "Омск",
+            "Воронеж",
+            "Пермь",
+            "Волгоград"
     );
 
     private final ParserProperties parserProperties;
