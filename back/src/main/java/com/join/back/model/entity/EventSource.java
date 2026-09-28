@@ -9,5 +9,6 @@ public enum EventSource {
     YANDEX_AFISHA,
     TBANK_AFISHA,
     TICKETTOSHOW,
-    ENGINEER_HISTORY
+    ENGINEER_HISTORY,
+    KASSIR
 }

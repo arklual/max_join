@@ -74,6 +74,17 @@ public class CategoryMapper {
             Map.entry("детям", EventType.FESTIVAL)
     );
 
+    /** Kassir.ru category names (see KassirParser.CATEGORY_NAMES). */
+    private static final Map<String, EventType> KASSIR_MAPPING = Map.of(
+            "Концерт", EventType.MUSIC,
+            "Театр", EventType.THEATER,
+            "Шоу", EventType.THEATER,
+            "Стендап", EventType.THEATER,
+            "Фестивали", EventType.FESTIVAL,
+            "Спорт", EventType.SPORT,
+            "Выставки", EventType.ART,
+            "Экскурсии", EventType.EXCURSION);
+
     /** PRO.Культура.РФ category and tag names. */
     private static final Map<String, EventType> CULTURE_RU_MAPPING = Map.ofEntries(
             Map.entry("концерты", EventType.MUSIC),
@@ -146,6 +157,14 @@ public class CategoryMapper {
         }
 
         return firstMatch != null ? firstMatch : FALLBACK;
+    }
+
+    /** Maps a Kassir.ru category name (first raw category) to EventType. */
+    public EventType mapKassirCategory(List<String> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return FALLBACK;
+        }
+        return KASSIR_MAPPING.getOrDefault(categories.get(0), FALLBACK);
     }
 
     /** Maps PRO.Культура.РФ category/tag names to EventType (first known one wins). */
