@@ -81,7 +81,7 @@ class NotificationServiceTest {
         verify(notificationRepository).save(captor.capture());
         Notification captured = captor.getValue();
         assertEquals(matchId, captured.getMatchId());
-        assertEquals("Новый метч!", captured.getTitle());
+        assertEquals("Нашлась компания", captured.getTitle());
     }
 
     @Test

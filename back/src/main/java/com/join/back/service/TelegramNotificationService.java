@@ -19,14 +19,24 @@ public class TelegramNotificationService {
     @Value("${telegram.webapp-url:}")
     private String webappUrl;
 
-    public void sendMatchNotification(Long telegramId, String companionName, String eventTitle, Long chatId) {
+    public void sendMatchNotification(Long telegramId, String companionName, String eventTitle, Long matchId) {
         send(telegramId, String.format("""
-                🎉 Напарник найден!
+                🎉 Нашлась компания!
 
-                На «%s» с тобой хочет пойти <b>%s</b>.
+                На «%s» тоже хочет пойти <b>%s</b>.
 
-                Напиши первым — договоритесь, когда и где встретиться 👇""",
-                esc(eventTitle), esc(companionName)), "💬 Написать", DeepLinks.chat(chatId));
+                Позовите пойти вместе — чат откроется, когда придёт согласие 👇""",
+                esc(eventTitle), esc(companionName)), "🤝 Позвать пойти вместе", DeepLinks.MATCHES);
+    }
+
+    public void sendContactRequest(Long telegramId, String requesterName, String eventTitle, Long matchId) {
+        send(telegramId, String.format("🤝 <b>%s</b> зовёт вас пойти на «%s» вместе.",
+                esc(requesterName), esc(eventTitle)), "Ответить", DeepLinks.MATCHES);
+    }
+
+    public void sendContactAccepted(Long telegramId, String companionName, String eventTitle, Long chatId) {
+        send(telegramId, String.format("✅ <b>%s</b> — «пойдём!» на «%s». Чат открыт: договоритесь, где встретиться.",
+                esc(companionName), esc(eventTitle)), "💬 Написать", DeepLinks.chat(chatId));
     }
 
     public void sendChatMessageNotification(Long telegramId, String senderName, String messageText, Long chatId) {
@@ -58,16 +68,6 @@ public class TelegramNotificationService {
 
                 Ты идёшь вместе с <b>%s</b>. Договоритесь, где встретиться 👇""",
                 esc(when), esc(eventTitle), esc(companionName)), "💬 Написать", DeepLinks.chat(chatId));
-    }
-
-    public void sendOutingProposal(Long telegramId, String companionName, String eventTitle, Long chatId) {
-        send(telegramId, String.format("🤝 <b>%s</b> предлагает отметить: вы договорились пойти на «%s» вместе. Подтвердите в чате.",
-                esc(companionName), esc(eventTitle)), "✅ Подтвердить в чате", DeepLinks.chat(chatId));
-    }
-
-    public void sendOutingAgreed(Long telegramId, String companionName, String eventTitle, Long chatId) {
-        send(telegramId, String.format("✅ Договорились: вы с <b>%s</b> идёте на «%s». Накануне напомню о встрече.",
-                esc(companionName), esc(eventTitle)), "💬 Открыть чат", DeepLinks.chat(chatId));
     }
 
     public void sendOutingFeedback(Long telegramId, String companionName, String eventTitle, Long chatId) {

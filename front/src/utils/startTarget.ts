@@ -5,6 +5,7 @@
  *   gchat_<id>  → group chat
  *   event_<id>  → event page (shared events, event reminders)
  *   group_<id>  → invitation into an event group
+ *   matches     → found companions and "пойдём вместе?" invitations (chats list)
  *   pushkin     → afisha filtered to Pushkin card events
  *
  * Friend-group invites (`join_<code>`) are handled separately in inviteLinks.ts.
@@ -16,6 +17,7 @@ export const START_PARAM = {
   event: 'event_',
   group: 'group_',
   pushkin: 'pushkin',
+  matches: 'matches',
 } as const;
 
 const FILTERS_KEY = 'afisha_filters';
@@ -69,6 +71,7 @@ export function routeForStartParam(raw: string | null | undefined): string | nul
   if (id) return `/events/${id}`;
   id = idAfter(value, START_PARAM.group);
   if (id) return `/groups/${id}`;
+  if (value === START_PARAM.matches) return '/chats';
   if (value === START_PARAM.pushkin) {
     try {
       const stored = JSON.parse(sessionStorage.getItem(FILTERS_KEY) || '{}');

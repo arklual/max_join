@@ -88,16 +88,27 @@ export interface Outing {
   companions: OutingCompanion[];
   chatId: number | null;
   groupChatId: number | null;
-  /** Both confirmed "we agreed to go together" (pairs only). */
-  agreed: boolean;
 }
 
-export type OutingAgreement = 'NONE' | 'PROPOSED_BY_ME' | 'PROPOSED_BY_COMPANION' | 'AGREED';
+/** A companion found for an event — not a chat yet: one side invites, the other accepts. */
+export interface MatchSuggestion {
+  id: number;
+  companionId: number;
+  companionName: string | null;
+  companionPhoto: string | null;
+  companionAge: number | null;
+  eventId: number;
+  eventTitle: string | null;
+  eventDate: string | null;
+  status: 'NEW' | 'REQUESTED' | 'ACCEPTED' | 'DECLINED';
+  requestedByMe: boolean;
+  chatId: number | null;
+  createdAt: string;
+}
 
-/** A match chat's plan: "договорились пойти вместе?" and, after the event, "сходили вместе?". */
+/** "Сходили вместе?" after the event of a pair's chat. */
 export interface OutingState {
   chatId: number;
-  agreement: OutingAgreement;
   eventPassed: boolean;
   went: 'WENT' | 'NOT_WENT' | null;
   companionWent: 'WENT' | 'NOT_WENT' | null;

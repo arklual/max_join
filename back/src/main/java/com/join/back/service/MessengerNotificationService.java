@@ -15,10 +15,22 @@ public class MessengerNotificationService {
     private final MaxNotificationService maxNotificationService;
     private final TelegramNotificationService telegramNotificationService;
 
-    public void sendMatchNotification(User user, String companionName, String eventTitle, Long chatId) {
+    public void sendMatchNotification(User user, String companionName, String eventTitle, Long matchId) {
         if (user == null) return;
-        if (user.getMaxId() != null) maxNotificationService.sendMatchNotification(user.getMaxId(), companionName, eventTitle, chatId);
-        if (user.getTelegramId() != null) telegramNotificationService.sendMatchNotification(user.getTelegramId(), companionName, eventTitle, chatId);
+        if (user.getMaxId() != null) maxNotificationService.sendMatchNotification(user.getMaxId(), companionName, eventTitle, matchId);
+        if (user.getTelegramId() != null) telegramNotificationService.sendMatchNotification(user.getTelegramId(), companionName, eventTitle, matchId);
+    }
+
+    public void sendContactRequest(User user, String requesterName, String eventTitle, Long matchId) {
+        if (user == null) return;
+        if (user.getMaxId() != null) maxNotificationService.sendContactRequest(user.getMaxId(), requesterName, eventTitle, matchId);
+        if (user.getTelegramId() != null) telegramNotificationService.sendContactRequest(user.getTelegramId(), requesterName, eventTitle, matchId);
+    }
+
+    public void sendContactAccepted(User user, String companionName, String eventTitle, Long chatId) {
+        if (user == null) return;
+        if (user.getMaxId() != null) maxNotificationService.sendContactAccepted(user.getMaxId(), companionName, eventTitle, chatId);
+        if (user.getTelegramId() != null) telegramNotificationService.sendContactAccepted(user.getTelegramId(), companionName, eventTitle, chatId);
     }
 
     public void sendChatMessageNotification(User user, String senderName, String messageText, Long chatId) {
@@ -37,18 +49,6 @@ public class MessengerNotificationService {
         if (user == null) return;
         if (user.getMaxId() != null) maxNotificationService.sendGroupInvite(user.getMaxId(), inviterName, eventTitle, when, groupId);
         if (user.getTelegramId() != null) telegramNotificationService.sendGroupInvite(user.getTelegramId(), inviterName, eventTitle, when, groupId);
-    }
-
-    public void sendOutingProposal(User user, String companionName, String eventTitle, Long chatId) {
-        if (user == null) return;
-        if (user.getMaxId() != null) maxNotificationService.sendOutingProposal(user.getMaxId(), companionName, eventTitle, chatId);
-        if (user.getTelegramId() != null) telegramNotificationService.sendOutingProposal(user.getTelegramId(), companionName, eventTitle, chatId);
-    }
-
-    public void sendOutingAgreed(User user, String companionName, String eventTitle, Long chatId) {
-        if (user == null) return;
-        if (user.getMaxId() != null) maxNotificationService.sendOutingAgreed(user.getMaxId(), companionName, eventTitle, chatId);
-        if (user.getTelegramId() != null) telegramNotificationService.sendOutingAgreed(user.getTelegramId(), companionName, eventTitle, chatId);
     }
 
     public void sendOutingFeedback(User user, String companionName, String eventTitle, Long chatId) {

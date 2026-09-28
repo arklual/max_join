@@ -38,6 +38,7 @@ import {
   ChatBubbleOutline,
   DeleteOutline,
 } from '@mui/icons-material';
+import MatchSuggestions from '../components/MatchSuggestions';
 
 const SWIPE_THRESHOLD = 80;
 
@@ -304,6 +305,8 @@ export default function ChatsListScreen() {
       <Typography variant="h5" sx={{ fontWeight: 700, px: 2, pt: 2, pb: 1.5 }}>
         Чаты
       </Typography>
+
+      <MatchSuggestions />
 
       {/* Pinned Support Chat */}
       <Card

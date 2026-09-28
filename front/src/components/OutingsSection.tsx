@@ -86,11 +86,6 @@ export default function OutingsSection() {
                     {companionsLine(outing)}
                   </Typography>
                 </Box>
-                {outing.agreed && (
-                  <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600 }}>
-                    ✓ Договорились пойти вместе
-                  </Typography>
-                )}
                 {outing.pushkinCard && pushkinEligible && (
                   <Box sx={{ mt: 0.25 }}>
                     <PushkinCardChip />

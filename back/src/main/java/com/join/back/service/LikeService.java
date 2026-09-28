@@ -6,7 +6,6 @@ import com.join.back.model.entity.Event;
 import com.join.back.model.entity.EventLike;
 import com.join.back.model.entity.Match;
 import com.join.back.model.entity.User;
-import com.join.back.repository.ChatRepository;
 import com.join.back.repository.EventLikeRepository;
 import com.join.back.repository.EventRepository;
 import com.join.back.repository.UserRepository;
@@ -32,7 +31,6 @@ public class LikeService {
     private final EventRepository eventRepository;
     private final EventMapper eventMapper;
     private final MatchService matchService;
-    private final ChatRepository chatRepository;
     private final UserRepository userRepository;
 
     @Transactional(transactionManager = "transactionManager")
@@ -66,8 +64,7 @@ public class LikeService {
         return matches.stream().map(match -> {
             Long companionId = match.getUser1Id().equals(userId) ? match.getUser2Id() : match.getUser1Id();
             String companionName = userRepository.findById(companionId).map(User::getFirstName).orElse(null);
-            Long chatId = chatRepository.findByMatchId(match.getId()).map(chat -> chat.getId()).orElse(null);
-            return new LikeResultResponse.NewMatch(chatId, companionId, companionName);
+            return new LikeResultResponse.NewMatch(match.getId(), companionId, companionName);
         }).toList();
     }
 

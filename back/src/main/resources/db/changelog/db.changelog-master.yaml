@@ -89,3 +89,5 @@ databaseChangeLog:
       file: db/changelog/046-create-outing-confirmations-table.yaml
   - include:
       file: db/changelog/047-yandex-external-id-per-city.yaml
+  - include:
+      file: db/changelog/048-add-contact-request-to-matches.yaml

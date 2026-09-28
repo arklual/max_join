@@ -8,7 +8,8 @@ import com.join.back.service.MaxBotInfoService;
 import com.join.back.service.MaxLinkService;
 import com.join.back.service.MaxLoginService;
 import com.join.back.repository.UserRepository;
-import com.join.back.service.OutingAgreementService;
+import com.join.back.service.ContactRequestService;
+import com.join.back.service.OutingFeedbackService;
 import com.join.back.service.PushkinPicksService;
 import com.join.back.util.MessengerHtml;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,8 @@ public class MaxWebhookController {
     private final MaxLinkService maxLinkService;
     private final MaxLoginService maxLoginService;
     private final PushkinPicksService pushkinPicksService;
-    private final OutingAgreementService outingAgreementService;
+    private final OutingFeedbackService outingFeedbackService;
+    private final ContactRequestService contactRequestService;
     private final UserRepository userRepository;
 
     @Value("${max.webhook-secret:}")
@@ -101,7 +103,10 @@ public class MaxWebhookController {
                 received.getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Bot buttons "✅ Подтвердить" / "Сходили вместе?" — answered in place, without opening the app. */
+    /**
+     * Bot buttons answered in place, without opening the app: "Позвать пойти вместе" / "Пойдём" /
+     * "Не в этот раз" and "Сходили вместе?".
+     */
     private void handleCallback(JsonNode update) {
         JsonNode callback = update.path("callback");
         String callbackId = callback.path("callback_id").asText("");
@@ -110,16 +115,28 @@ public class MaxWebhookController {
         if (callbackId.isEmpty() || maxUserId == 0) {
             return;
         }
-        String reply = outingAgreementService.handleButton(userRepository.findByMaxId(maxUserId).orElse(null), payload);
-        if (reply == null) {
+        var user = userRepository.findByMaxId(maxUserId).orElse(null);
+        String text;
+        Long chatId = null;
+        ContactRequestService.ButtonReply contact = contactRequestService.handleButton(user, payload);
+        if (contact != null) {
+            text = contact.text();
+            chatId = contact.chatId();
+        } else {
+            text = outingFeedbackService.handleButton(user, payload);
+            Matcher went = WENT_CHAT.matcher(payload);
+            if (went.find()) {
+                chatId = Long.parseLong(went.group(1));
+            }
+        }
+        if (text == null) {
             return;
         }
-        Matcher chat = CHAT_IN_PAYLOAD.matcher(payload);
-        List<List<Map<String, Object>>> keyboard = chat.find()
-                ? List.of(List.of(MaxBotApiClient.openAppButton("💬 Открыть чат", maxBotInfoService.getUsername(),
-                        DeepLinks.chat(Long.parseLong(chat.group(1))))))
-                : null;
-        maxBotApiClient.answerCallback(callbackId, reply, keyboard);
+        String bot = maxBotInfoService.getUsername();
+        List<List<Map<String, Object>>> keyboard = chatId != null
+                ? List.of(List.of(MaxBotApiClient.openAppButton("💬 Открыть чат", bot, DeepLinks.chat(chatId))))
+                : List.of(List.of(MaxBotApiClient.openAppButton("Открыть JOIN", bot, DeepLinks.MATCHES)));
+        maxBotApiClient.answerCallback(callbackId, text, keyboard);
     }
 
     private void handleStart(long chatId, long maxUserId, String payload) {
@@ -193,7 +210,7 @@ public class MaxWebhookController {
         log.info("Sent welcome message to chat {}", chatId);
     }
 
-    private static final Pattern CHAT_IN_PAYLOAD = Pattern.compile("^(?:agree|went)_(\\d+)");
+    private static final Pattern WENT_CHAT = Pattern.compile("^went_(\\d+)");
 
     static final String PUSHKIN_NOT_ELIGIBLE = "Пушкинская карта действует с 14 до 22 лет, поэтому подборку по ней не показываю. "
             + "Зато в афише полно всего остального 👇";

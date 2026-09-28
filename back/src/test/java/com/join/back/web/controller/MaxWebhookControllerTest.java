@@ -60,7 +60,10 @@ class MaxWebhookControllerTest {
     private PushkinPicksService pushkinPicksService;
 
     @MockBean
-    private com.join.back.service.OutingAgreementService outingAgreementService;
+    private com.join.back.service.OutingFeedbackService outingFeedbackService;
+
+    @MockBean
+    private com.join.back.service.ContactRequestService contactRequestService;
 
     @MockBean
     private com.join.back.repository.UserRepository userRepository;
@@ -97,7 +100,7 @@ class MaxWebhookControllerTest {
     void wentButtonIsAnsweredInPlace() throws Exception {
         com.join.back.model.entity.User user = com.join.back.model.entity.User.builder().id(5L).maxId(7L).build();
         when(userRepository.findByMaxId(7L)).thenReturn(java.util.Optional.of(user));
-        when(outingAgreementService.handleButton(user, "went_42_yes")).thenReturn("🎉 Здорово!");
+        when(outingFeedbackService.handleButton(user, "went_42_yes")).thenReturn("🎉 Здорово!");
         String update = """
                 {"update_type":"message_callback","timestamp":1,
                  "callback":{"timestamp":1,"callback_id":"cb-1","payload":"went_42_yes","user":{"user_id":7}}}""";
@@ -111,6 +114,28 @@ class MaxWebhookControllerTest {
         ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
         verify(maxBotApiClient).answerCallback(eq("cb-1"), eq("🎉 Здорово!"), keyboard.capture());
         assertThat(keyboard.getValue().get(0).get(0)).containsEntry("payload", "chat_42");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void acceptButtonOpensTheNewChat() throws Exception {
+        com.join.back.model.entity.User user = com.join.back.model.entity.User.builder().id(5L).maxId(7L).build();
+        when(userRepository.findByMaxId(7L)).thenReturn(java.util.Optional.of(user));
+        when(contactRequestService.handleButton(user, "accept_9"))
+                .thenReturn(new com.join.back.service.ContactRequestService.ButtonReply("✅ Договорились общаться!", 55L));
+        String update = """
+                {"update_type":"message_callback","timestamp":1,
+                 "callback":{"timestamp":1,"callback_id":"cb-2","payload":"accept_9","user":{"user_id":7}}}""";
+
+        mockMvc.perform(post("/api/max/webhook")
+                        .header(SECRET_HEADER, "s3cret")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(update))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<List<List<Map<String, Object>>>> keyboard = ArgumentCaptor.forClass(List.class);
+        verify(maxBotApiClient).answerCallback(eq("cb-2"), eq("✅ Договорились общаться!"), keyboard.capture());
+        assertThat(keyboard.getValue().get(0).get(0)).containsEntry("payload", "chat_55");
     }
 
     @Test

@@ -10,10 +10,12 @@ import Typography from '@mui/material/Typography';
 import { haptic } from '../api/maxBridge';
 import { messengerName } from '../api/platform';
 import { plural } from '../utils/format';
+import { errorMessage, inviteMatch } from '../api/matches';
 
 /** Response of POST /events/{id}/like. */
 export interface LikeResult {
-  matches: { chatId: number | null; companionId: number; companionName: string | null }[];
+  /** Companions found right away — no chat yet: invite first, the chat opens when they accept. */
+  matches: { matchId: number; companionId: number; companionName: string | null }[];
   othersInterested: number;
 }
 
@@ -65,9 +67,31 @@ export function LikeFeedbackHost() {
   const name = first?.companionName || 'Собеседник';
   const firstName = first?.companionName?.trim().split(/\s+/)[0] ?? '';
 
-  function openChat() {
+  const [inviting, setInviting] = useState(false);
+
+  async function invite() {
+    if (!first) return;
+    setInviting(true);
+    try {
+      const result = await inviteMatch(first.matchId);
+      setMatch(null);
+      if (result.status === 'ACCEPTED' && result.chatId) {
+        haptic('success');
+        navigate(`/chats/${result.chatId}`);
+      } else {
+        setSnack(`Позвали ${firstName || 'собеседника'} — чат откроется, когда придёт ответ`);
+      }
+    } catch (err) {
+      setMatch(null);
+      setSnack(errorMessage(err, 'Не получилось отправить приглашение'));
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  function openProfile() {
     setMatch(null);
-    navigate(first?.chatId ? `/chats/${first.chatId}` : '/chats');
+    navigate(first ? `/profile/${first.companionId}` : '/chats');
   }
 
   return (
@@ -78,20 +102,20 @@ export function LikeFeedbackHost() {
             🎉
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-            Напарник найден!
+            Нашлась компания!
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            На «{match?.eventTitle}» с тобой хочет пойти <b>{name}</b>
+            На «{match?.eventTitle}» тоже хочет пойти <b>{name}</b>
             {extra > 0 ? ` и ещё ${extra} ${plural(extra, ['человек', 'человека', 'человек'])}` : ''}.
-            Напиши первым — договоритесь, где встретиться.
+            Позовите пойти вместе — чат откроется, когда придёт согласие.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
-          <Button onClick={() => setMatch(null)} sx={{ textTransform: 'none' }}>
-            Позже
+          <Button onClick={openProfile} sx={{ textTransform: 'none' }}>
+            Профиль
           </Button>
-          <Button variant="filled" onClick={openChat} sx={{ textTransform: 'none', borderRadius: 5, fontWeight: 600, flex: 1 }}>
-            {firstName ? `Написать ${firstName}` : 'Написать'}
+          <Button variant="filled" onClick={invite} disabled={inviting} sx={{ textTransform: 'none', borderRadius: 5, fontWeight: 600, flex: 1 }}>
+            Позвать пойти вместе
           </Button>
         </DialogActions>
       </Dialog>

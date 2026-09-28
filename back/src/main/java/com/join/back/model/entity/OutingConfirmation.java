@@ -18,8 +18,8 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * One participant's view of a match chat outcome: "we agreed to go together" (a contact is not yet
- * an agreement) and, after the event, "did you go together?".
+ * One participant's answer to "did you go together?" after the event of their pair's chat.
+ * ({@code agreed_at} is a legacy column of an earlier "договорились" button, no longer used.)
  */
 @Entity
 @Table(name = "outing_confirmations",
@@ -40,9 +40,6 @@ public class OutingConfirmation {
 
     @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(name = "agreed_at")
-    private LocalDateTime agreedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "went", length = 20)

@@ -1,6 +1,5 @@
 package com.join.back.service;
 
-import com.join.back.model.dto.MatchResponse;
 import com.join.back.model.entity.Chat;
 import com.join.back.model.entity.Event;
 import com.join.back.model.entity.EventLike;
@@ -33,7 +32,6 @@ public class MatchService {
     private final EventRepository eventRepository;
     private final ChatRepository chatRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final ChatService chatService;
     private final NotificationService notificationService;
     private final MessengerNotificationService messengerNotificationService;
     private final UserBlockService userBlockService;
@@ -84,10 +82,8 @@ public class MatchService {
             Match savedMatch = matchRepository.save(match);
             newMatches.add(savedMatch);
 
-            Chat chat = chatService.createChat(savedMatch.getId(), savedMatch.getUser1Id(), savedMatch.getUser2Id(), eventId);
-            Long chatId = chat != null ? chat.getId() : null;
-
-            // Notify both users about the new match
+            // No chat yet: one side asks "пойдём вместе?" and the chat opens when the other accepts
+            // (ContactRequestService). Notify both users about the new match.
             String currentUserName = currentUser.getFirstName() != null ? currentUser.getFirstName() : "Собеседник";
             String otherUserName = otherUser.getFirstName() != null ? otherUser.getFirstName() : "Собеседник";
 
@@ -95,45 +91,11 @@ public class MatchService {
             notificationService.createMatchNotification(otherUser.getId(), savedMatch.getId(), currentUserName, eventTitle);
 
             // Уведомления от бота в мессенджеры пользователей (MAX / Telegram)
-            messengerNotificationService.sendMatchNotification(currentUser, otherUserName, eventTitle, chatId);
-            messengerNotificationService.sendMatchNotification(otherUser, currentUserName, eventTitle, chatId);
+            messengerNotificationService.sendMatchNotification(currentUser, otherUserName, eventTitle, savedMatch.getId());
+            messengerNotificationService.sendMatchNotification(otherUser, currentUserName, eventTitle, savedMatch.getId());
         }
 
         return newMatches;
-    }
-
-    @Transactional(readOnly = true, transactionManager = "transactionManager")
-    public List<MatchResponse> getMatches(Long userId) {
-        List<Match> matches = matchRepository.findByUserId(userId);
-
-        Set<Long> companionIds = matches.stream()
-                .map(match -> match.getUser1Id().equals(userId) ? match.getUser2Id() : match.getUser1Id())
-                .collect(Collectors.toSet());
-
-        Set<Long> eventIds = matches.stream()
-                .map(Match::getEventId)
-                .collect(Collectors.toSet());
-
-        Map<Long, User> usersMap = userRepository.findAllById(companionIds).stream()
-                .collect(Collectors.toMap(User::getId, user -> user));
-
-        Map<Long, Event> eventsMap = eventRepository.findAllById(eventIds).stream()
-                .collect(Collectors.toMap(Event::getId, event -> event));
-
-        return matches.stream().map(match -> {
-            Long companionId = match.getUser1Id().equals(userId) ? match.getUser2Id() : match.getUser1Id();
-            User companion = usersMap.get(companionId);
-            Event event = eventsMap.get(match.getEventId());
-
-            return new MatchResponse(
-                    match.getId(),
-                    companion != null ? companion.getFirstName() : null,
-                    companion != null ? companion.getPhoto() : null,
-                    event != null ? event.getTitle() : null,
-                    event != null ? event.getEventDate().toString() : null,
-                    match.getCreatedAt()
-            );
-        }).collect(Collectors.toList());
     }
 
     @Transactional(transactionManager = "transactionManager")

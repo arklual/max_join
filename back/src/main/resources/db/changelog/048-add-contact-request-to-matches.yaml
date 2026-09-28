@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: 048-add-contact-request-to-matches
+      author: join-team
+      comment: A match no longer opens a chat by itself — one side asks "пойдём вместе?", the other accepts.
+      changes:
+        - addColumn:
+            tableName: matches
+            columns:
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: NEW
+                  constraints:
+                    nullable: false
+              - column:
+                  name: requested_by
+                  type: BIGINT
+              - column:
+                  name: requested_at
+                  type: TIMESTAMP
+              - column:
+                  name: responded_at
+                  type: TIMESTAMP
+        - sql:
+            comment: Pairs that already have a chat agreed to talk before this change.
+            sql: UPDATE matches SET status = 'ACCEPTED' WHERE id IN (SELECT match_id FROM chats WHERE match_id IS NOT NULL)

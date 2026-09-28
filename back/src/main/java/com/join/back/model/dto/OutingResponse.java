@@ -16,9 +16,7 @@ public record OutingResponse(
         List<Companion> companions,
         /** Where to talk: /chats/{chatId} for a pair, /group-chats/{groupChatId} for a group. */
         Long chatId,
-        Long groupChatId,
-        /** Both confirmed "we agreed to go together" (pairs only). */
-        boolean agreed
+        Long groupChatId
 ) {
 
     public record Companion(Long userId, String name, String photo) {

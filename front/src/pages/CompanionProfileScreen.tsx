@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router';
 import apiClient from '../api/client';
 import { mediaUrl } from '../api/platform';
 import { INTEREST_LABELS } from '../types';
-import type { BlockStatus, CompanionProfile, Chat } from '../types';
+import type { BlockStatus, CompanionProfile, Chat, MatchSuggestion } from '../types';
+import { acceptMatch, declineMatch, errorMessage, inviteMatch } from '../api/matches';
 import LinkifiedText from '../components/LinkifiedText';
 import BlockUserDialog from '../components/BlockUserDialog';
 import BlockOutlined from '@mui/icons-material/BlockOutlined';
@@ -42,6 +43,10 @@ export default function CompanionProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chatId, setChatId] = useState<number | null>(null);
+  // A found companion without a chat yet: invite or answer the invitation here.
+  const [suggestion, setSuggestion] = useState<MatchSuggestion | null>(null);
+  const [suggestionBusy, setSuggestionBusy] = useState(false);
+  const [suggestionNote, setSuggestionNote] = useState('');
   const [blockStatus, setBlockStatus] = useState<BlockStatus | null>(null);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
 
@@ -61,7 +66,29 @@ export default function CompanionProfileScreen() {
         setChatId(chat ? chat.id : null);
       })
       .catch(() => {});
+    apiClient
+      .get<MatchSuggestion[]>('/matches')
+      .then((res) => setSuggestion(res.data.find((m) => String(m.companionId) === userId) ?? null))
+      .catch(() => {});
   }, [userId]);
+
+  async function actOnSuggestion(action: (id: number) => Promise<MatchSuggestion>) {
+    if (!suggestion) return;
+    setSuggestionBusy(true);
+    setSuggestionNote('');
+    try {
+      const updated = await action(suggestion.id);
+      if (updated.status === 'ACCEPTED' && updated.chatId) {
+        navigate(`/chats/${updated.chatId}`);
+        return;
+      }
+      setSuggestion(updated.status === 'DECLINED' ? null : updated);
+    } catch (err) {
+      setSuggestionNote(errorMessage(err, 'Не получилось, попробуйте ещё раз'));
+    } finally {
+      setSuggestionBusy(false);
+    }
+  }
 
   const loadProfile = useCallback(async () => {
     if (!userId || isNaN(Number(userId))) {
@@ -176,6 +203,35 @@ export default function CompanionProfileScreen() {
             >
               Написать
             </Button>
+          )}
+          {chatId == null && suggestion && !blockStatus?.blockedByMe && !blockStatus?.blockedMe && (
+            <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                {suggestion.status === 'REQUESTED' && !suggestion.requestedByMe
+                  ? `Зовёт пойти вместе на «${suggestion.eventTitle}»`
+                  : suggestion.status === 'REQUESTED'
+                    ? 'Позвали — чат откроется, когда придёт ответ'
+                    : `Тоже хочет на «${suggestion.eventTitle}»`}
+              </Typography>
+              {suggestion.status === 'REQUESTED' && !suggestion.requestedByMe && (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button disabled={suggestionBusy} onClick={() => actOnSuggestion(declineMatch)} sx={{ textTransform: 'none' }}>
+                    Не в этот раз
+                  </Button>
+                  <Button variant="filled" disabled={suggestionBusy} onClick={() => actOnSuggestion(acceptMatch)}
+                    sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600, px: 3 }}>
+                    Пойдём
+                  </Button>
+                </Box>
+              )}
+              {suggestion.status === 'NEW' && (
+                <Button variant="filled" disabled={suggestionBusy} onClick={() => actOnSuggestion(inviteMatch)}
+                  sx={{ borderRadius: 3, textTransform: 'none', fontWeight: 600, px: 3 }}>
+                  Позвать пойти вместе
+                </Button>
+              )}
+              {suggestionNote && <Alert severity="error">{suggestionNote}</Alert>}
+            </Box>
           )}
         </Box>
 

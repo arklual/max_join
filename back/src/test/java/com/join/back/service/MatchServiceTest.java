@@ -100,8 +100,6 @@ class MatchServiceTest {
                 .createdAt(FIXED_CREATED_AT).build();
         when(matchRepository.save(any(Match.class))).thenReturn(savedMatch);
 
-        when(chatService.createChat(eq(100L), eq(userId1), eq(userId2), eq(eventId)))
-                .thenReturn(Chat.builder().id(1L).build());
         when(notificationService.createMatchNotification(anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(Notification.builder().id(1L).build());
 
@@ -109,7 +107,8 @@ class MatchServiceTest {
 
         assertEquals(1, result.size());
         verify(matchRepository).save(any(Match.class));
-        verify(chatService).createChat(eq(100L), eq(userId1), eq(userId2), eq(eventId));
+        // No chat until one side invites and the other accepts
+        verify(chatService, org.mockito.Mockito.never()).createChat(anyLong(), anyLong(), anyLong(), anyLong());
         // Both users should receive a notification
         verify(notificationService, times(2)).createMatchNotification(anyLong(), eq(100L), anyString(), anyString());
     }
@@ -212,8 +211,6 @@ class MatchServiceTest {
                 .createdAt(FIXED_CREATED_AT).build();
         when(matchRepository.save(any(Match.class))).thenReturn(savedMatch);
 
-        when(chatService.createChat(eq(100L), eq(userId1), eq(userId2), eq(eventId)))
-                .thenReturn(Chat.builder().id(1L).build());
         when(notificationService.createMatchNotification(anyLong(), anyLong(), anyString(), anyString()))
                 .thenReturn(Notification.builder().id(1L).build());
 

@@ -19,9 +19,21 @@ public final class DeepLinks {
         return groupChatId == null ? null : "gchat_" + groupChatId;
     }
 
-    /** Bot button: confirm "we agreed to go together" in a match chat. */
-    public static String agree(Long chatId) {
-        return "agree_" + chatId;
+    /** Mini app screen with found companions and requests (the chats list). */
+    public static final String MATCHES = "matches";
+
+    /** Bot button: ask a found companion "пойдём вместе?". */
+    public static String invite(Long matchId) {
+        return "invite_" + matchId;
+    }
+
+    /** Bot buttons: answer "пойдём вместе?". */
+    public static String acceptContact(Long matchId) {
+        return "accept_" + matchId;
+    }
+
+    public static String declineContact(Long matchId) {
+        return "decline_" + matchId;
     }
 
     /** Bot button: answer "did you go together?" for a match chat. */

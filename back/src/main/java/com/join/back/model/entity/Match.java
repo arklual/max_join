@@ -2,6 +2,8 @@ package com.join.back.model.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -38,4 +40,26 @@ public class Match {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    @Builder.Default
+    private MatchStatus status = MatchStatus.NEW;
+
+    /** Who asked "пойдём вместе?". */
+    @Column(name = "requested_by")
+    private Long requestedBy;
+
+    @Column(name = "requested_at")
+    private LocalDateTime requestedAt;
+
+    @Column(name = "responded_at")
+    private LocalDateTime respondedAt;
+
+    @jakarta.persistence.PrePersist
+    void defaultStatus() {
+        if (status == null) {
+            status = MatchStatus.NEW;
+        }
+    }
 }

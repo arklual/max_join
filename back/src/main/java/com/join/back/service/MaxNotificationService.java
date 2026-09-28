@@ -30,18 +30,37 @@ public class MaxNotificationService {
      * @param eventTitle    название мероприятия
      * @param chatId        id созданного чата — кнопка откроет его
      */
-    public void sendMatchNotification(Long maxId, String companionName, String eventTitle, Long chatId) {
+    /** A companion found — nobody can write yet: invite to go together right from the bot. */
+    public void sendMatchNotification(Long maxId, String companionName, String eventTitle, Long matchId) {
         String text = String.format(
                 """
-                🎉 Напарник найден!
+                🎉 Нашлась компания!
 
-                На «%s» с тобой хочет пойти <b>%s</b>.
+                На «%s» тоже хочет пойти <b>%s</b>.
 
-                Напиши первым — договоритесь, когда и где встретиться 👇""",
+                Позовите пойти вместе — чат откроется, когда придёт согласие 👇""",
                 escapeHtml(eventTitle),
                 escapeHtml(companionName)
         );
+        sendKeyboard(maxId, text, List.of(
+                List.of(MaxBotApiClient.callbackButton("🤝 Позвать пойти вместе", DeepLinks.invite(matchId))),
+                List.of(MaxBotApiClient.openAppButton("👤 Посмотреть профиль", maxBotInfoService.getUsername(), DeepLinks.MATCHES))));
+    }
 
+    /** "Пойдём вместе?" — answered with one tap. */
+    public void sendContactRequest(Long maxId, String requesterName, String eventTitle, Long matchId) {
+        String text = String.format("🤝 <b>%s</b> зовёт вас пойти на «%s» вместе.",
+                escapeHtml(requesterName), escapeHtml(eventTitle));
+        sendKeyboard(maxId, text, List.of(
+                List.of(MaxBotApiClient.callbackButton("✅ Пойдём", DeepLinks.acceptContact(matchId)),
+                        MaxBotApiClient.callbackButton("Не в этот раз", DeepLinks.declineContact(matchId))),
+                List.of(MaxBotApiClient.openAppButton("👤 Посмотреть профиль", maxBotInfoService.getUsername(), DeepLinks.MATCHES))));
+    }
+
+    /** The invitation accepted — the chat is open. */
+    public void sendContactAccepted(Long maxId, String companionName, String eventTitle, Long chatId) {
+        String text = String.format("✅ <b>%s</b> — «пойдём!» на «%s». Чат открыт: договоритесь, где встретиться.",
+                escapeHtml(companionName), escapeHtml(eventTitle));
         send(maxId, text, ("💬 Написать " + shortName(companionName)).trim(), DeepLinks.chat(chatId));
     }
 
@@ -111,25 +130,6 @@ public class MaxNotificationService {
         );
 
         send(maxId, text, ("💬 Написать " + shortName(companionName)).trim(), DeepLinks.chat(chatId));
-    }
-
-    /** Companion pressed "договорились" — confirm right here with a button. */
-    public void sendOutingProposal(Long maxId, String companionName, String eventTitle, Long chatId) {
-        String text = String.format("""
-                🤝 <b>%s</b> предлагает отметить: вы договорились пойти на «%s» вместе.
-
-                Подтвердите — и накануне я напомню о встрече.""",
-                escapeHtml(companionName), escapeHtml(eventTitle));
-        sendKeyboard(maxId, text, List.of(
-                List.of(MaxBotApiClient.callbackButton("✅ Подтвердить", DeepLinks.agree(chatId))),
-                List.of(MaxBotApiClient.openAppButton("💬 Открыть чат", maxBotInfoService.getUsername(), DeepLinks.chat(chatId)))));
-    }
-
-    /** Both confirmed the plan. */
-    public void sendOutingAgreed(Long maxId, String companionName, String eventTitle, Long chatId) {
-        String text = String.format("✅ Договорились: вы с <b>%s</b> идёте на «%s». Накануне напомню о встрече.",
-                escapeHtml(companionName), escapeHtml(eventTitle));
-        send(maxId, text, "💬 Открыть чат", DeepLinks.chat(chatId));
     }
 
     /** The day after the event: "did you go together?" answered with one tap. */

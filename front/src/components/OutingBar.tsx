@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import CheckCircleOutlined from '@mui/icons-material/CheckCircleOutlined';
-import HandshakeOutlined from '@mui/icons-material/HandshakeOutlined';
+import EventAvailableOutlined from '@mui/icons-material/EventAvailableOutlined';
 import apiClient from '../api/client';
 import { haptic } from '../api/maxBridge';
 import type { OutingState } from '../types';
@@ -16,13 +16,13 @@ interface OutingBarProps {
 }
 
 /**
- * A contact is not a plan yet: both press "Договорились", and after the event the pair answers
- * "Сходили вместе?". Sits between the messages and the input of a match chat.
+ * After the event of a pair's chat: "Сходили вместе?". Shown only once the event has passed;
+ * the bot asks the same the next day.
  */
 export default function OutingBar({ chatId, companionName, onError }: OutingBarProps) {
   const [state, setState] = useState<OutingState | null>(null);
   const [busy, setBusy] = useState(false);
-  const name = companionName || 'собеседник';
+  const name = companionName || 'собеседником';
 
   useEffect(() => {
     apiClient
@@ -31,12 +31,12 @@ export default function OutingBar({ chatId, companionName, onError }: OutingBarP
       .catch(() => setState(null));
   }, [chatId]);
 
-  async function run(request: () => Promise<{ data: OutingState }>, success?: 'success' | 'light') {
+  async function answer(went: boolean) {
     setBusy(true);
     try {
-      const res = await request();
+      const res = await apiClient.post<OutingState>(`/chats/${chatId}/outing/went`, { went });
       setState(res.data);
-      if (success) haptic(success);
+      haptic(went ? 'success' : 'light');
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       onError(message ?? 'Не получилось, попробуйте ещё раз');
@@ -45,66 +45,14 @@ export default function OutingBar({ chatId, companionName, onError }: OutingBarP
     }
   }
 
-  const agree = () => run(() => apiClient.post<OutingState>(`/chats/${chatId}/outing/agree`), 'success');
-  const cancel = () => run(() => apiClient.delete<OutingState>(`/chats/${chatId}/outing/agree`), 'light');
-  const answer = (went: boolean) =>
-    run(() => apiClient.post<OutingState>(`/chats/${chatId}/outing/went`, { went }), went ? 'success' : 'light');
+  if (!state?.eventPassed) return null;
 
-  if (!state) return null;
-
-  let text: string;
-  let actions: React.ReactNode = null;
-  let done = false;
-
-  if (state.eventPassed) {
-    if (state.went === 'WENT') {
-      text = 'Сходили вместе 🎉';
-      done = true;
-    } else if (state.went === 'NOT_WENT') {
-      text = 'В этот раз не получилось — в следующий обязательно!';
-    } else {
-      text = `Сходили вместе с ${name}?`;
-      actions = (
-        <>
-          <Button size="small" variant="filled" disabled={busy} onClick={() => answer(true)} sx={{ textTransform: 'none', borderRadius: 4 }}>
-            Да, сходили
-          </Button>
-          <Button size="small" disabled={busy} onClick={() => answer(false)} sx={{ textTransform: 'none' }}>
-            Не получилось
-          </Button>
-        </>
-      );
-    }
-  } else if (state.agreement === 'AGREED') {
-    text = 'Договорились пойти вместе — накануне напомним';
-    done = true;
-    actions = (
-      <Button size="small" disabled={busy} onClick={cancel} sx={{ textTransform: 'none', color: 'onSurfaceVariant.main' }}>
-        Отменить
-      </Button>
-    );
-  } else if (state.agreement === 'PROPOSED_BY_COMPANION') {
-    text = `${name} предлагает отметить, что вы договорились пойти вместе`;
-    actions = (
-      <Button size="small" variant="filled" disabled={busy} onClick={agree} sx={{ textTransform: 'none', borderRadius: 4 }}>
-        Подтвердить
-      </Button>
-    );
-  } else if (state.agreement === 'PROPOSED_BY_ME') {
-    text = `Ждём, когда ${name} подтвердит`;
-    actions = (
-      <Button size="small" disabled={busy} onClick={cancel} sx={{ textTransform: 'none', color: 'onSurfaceVariant.main' }}>
-        Отменить
-      </Button>
-    );
-  } else {
-    text = 'Договорились, когда и где встретиться?';
-    actions = (
-      <Button size="small" variant="tonal" disabled={busy} onClick={agree} sx={{ textTransform: 'none', borderRadius: 4 }}>
-        Договорились
-      </Button>
-    );
-  }
+  const done = state.went === 'WENT';
+  const text = state.went === 'WENT'
+    ? 'Сходили вместе 🎉'
+    : state.went === 'NOT_WENT'
+      ? 'В этот раз не получилось — в следующий обязательно!'
+      : `Сходили вместе с ${name}?`;
 
   return (
     <Box
@@ -125,12 +73,21 @@ export default function OutingBar({ chatId, companionName, onError }: OutingBarP
       {done ? (
         <CheckCircleOutlined fontSize="small" sx={{ color: 'success.main' }} />
       ) : (
-        <HandshakeOutlined fontSize="small" sx={{ color: 'primary.main' }} />
+        <EventAvailableOutlined fontSize="small" sx={{ color: 'primary.main' }} />
       )}
       <Typography variant="body2" sx={{ flex: 1, minWidth: 140, fontWeight: 500 }}>
         {text}
       </Typography>
-      {actions && <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>{actions}</Box>}
+      {state.went === null && (
+        <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
+          <Button size="small" variant="filled" disabled={busy} onClick={() => answer(true)} sx={{ textTransform: 'none', borderRadius: 4 }}>
+            Да, сходили
+          </Button>
+          <Button size="small" disabled={busy} onClick={() => answer(false)} sx={{ textTransform: 'none' }}>
+            Не получилось
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 }
