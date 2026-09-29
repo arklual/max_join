@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.join.back.service.MaxLinkService;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.HttpStatus;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 @Slf4j
 @RestController
@@ -37,11 +41,18 @@ public class AuthController extends BaseAuthController {
         this.loginAttemptService = loginAttemptService;
     }
 
+    @SecurityRequirements
+    @ApiResponse(responseCode = "200", description = "Токен и профиль")
+    @ApiResponse(responseCode = "409", description = "Email уже используется (code: EMAIL_TAKEN)")
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 
+    @SecurityRequirements
+    @ApiResponse(responseCode = "200", description = "Токен и профиль")
+    @ApiResponse(responseCode = "401", description = "Неверный email или пароль (code: BAD_CREDENTIALS)")
+    @ApiResponse(responseCode = "429", description = "Слишком много неудачных попыток, вход заблокирован на 15 минут")
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
         String ip = clientIp(http);
@@ -67,6 +78,7 @@ public class AuthController extends BaseAuthController {
         return http.getRemoteAddr();
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/link-email")
     public ResponseEntity<Void> linkEmail(@Valid @RequestBody LinkEmailRequest request) {
         authService.linkEmail(requireCurrentUserId(), request);

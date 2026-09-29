@@ -9,8 +9,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 /** "Войти через MAX" — public endpoints, the one-time token is the credential. */
+@SecurityRequirements
 @RestController
 @RequestMapping("/api/auth/max-login")
 @RequiredArgsConstructor

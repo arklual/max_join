@@ -93,6 +93,13 @@ icebreaker:
   model: ${AI_MODEL:gpt-6-luna}
   suggestions-count: 3
 
+springdoc:
+  # The published contract is the mini app API; the admin panel and bot webhooks are internal.
+  paths-to-exclude:
+    - /api/admin/**
+    - /api/max/webhook
+    - /api/telegram/webhook
+
 ---
 spring:
   config:

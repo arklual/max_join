@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
+@SecurityRequirements
 @RestController
 @RequestMapping("/api/cities")
 @RequiredArgsConstructor

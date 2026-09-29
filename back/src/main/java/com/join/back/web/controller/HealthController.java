@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 /** Liveness for Docker/nginx: UP only when the database answers. */
+@SecurityRequirements
 @RestController
 @RequiredArgsConstructor
 public class HealthController {

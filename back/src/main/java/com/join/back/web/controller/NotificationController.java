@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -26,7 +27,7 @@ public class NotificationController extends BaseAuthController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<NotificationResponse>> getNotifications(Pageable pageable) {
+    public ResponseEntity<Page<NotificationResponse>> getNotifications(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(notificationService.getNotifications(userId, pageable));
     }

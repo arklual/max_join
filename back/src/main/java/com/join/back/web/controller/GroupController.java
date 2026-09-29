@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 public class GroupController extends BaseAuthController {
@@ -37,6 +39,7 @@ public class GroupController extends BaseAuthController {
     }
 
     // POST /api/events/{eventId}/groups — create group
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/api/events/{eventId}/groups")
     public ResponseEntity<GroupResponse> createGroup(
             @PathVariable Long eventId,
@@ -51,7 +54,7 @@ public class GroupController extends BaseAuthController {
     @GetMapping("/api/events/{eventId}/groups")
     public ResponseEntity<Page<GroupResponse>> getGroupsForEvent(
             @PathVariable Long eventId,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         return ResponseEntity.ok(groupService.getGroupsForEvent(eventId, requireCurrentUserId(), pageable));
     }
@@ -84,7 +87,7 @@ public class GroupController extends BaseAuthController {
 
     // GET /api/groups/my — my groups
     @GetMapping("/api/groups/my")
-    public ResponseEntity<Page<GroupResponse>> getMyGroups(Pageable pageable) {
+    public ResponseEntity<Page<GroupResponse>> getMyGroups(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(groupService.getMyGroups(userId, pageable));
     }

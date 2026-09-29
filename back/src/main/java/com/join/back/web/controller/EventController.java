@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/events")
@@ -42,7 +43,7 @@ public class EventController extends BaseAuthController {
             @RequestParam(required = false) List<Long> tagIds,
             @RequestParam(required = false) Boolean pushkinCard,
             @RequestParam(required = false) String city,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         EventFilterRequest filter = new EventFilterRequest(search, minPrice, maxPrice, dateFrom, dateTo, type, tagIds,
                 pushkinCard, city);

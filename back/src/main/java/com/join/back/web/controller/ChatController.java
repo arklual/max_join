@@ -23,6 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.http.HttpStatus;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/chats")
@@ -64,7 +67,7 @@ public class ChatController extends BaseAuthController {
     @GetMapping("/{id}/messages")
     public ResponseEntity<Page<ChatMessageResponse>> getMessages(
             @PathVariable Long id,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(chatService.getMessages(id, userId, pageable));
@@ -92,18 +95,21 @@ public class ChatController extends BaseAuthController {
         return ResponseEntity.ok().build();
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/{id}/pin")
     public ResponseEntity<Void> pinChat(@PathVariable Long id) {
         chatService.setPinned(id, requireCurrentUserId(), true);
         return ResponseEntity.noContent().build();
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}/pin")
     public ResponseEntity<Void> unpinChat(@PathVariable Long id) {
         chatService.setPinned(id, requireCurrentUserId(), false);
         return ResponseEntity.noContent().build();
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteChat(@PathVariable Long id) {
         Long userId = requireCurrentUserId();

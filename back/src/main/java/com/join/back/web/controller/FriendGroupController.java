@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/friend-groups")
@@ -31,6 +33,7 @@ public class FriendGroupController extends BaseAuthController {
         this.friendGroupService = friendGroupService;
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     public ResponseEntity<FriendGroupResponse> create(@Valid @RequestBody CreateFriendGroupRequest request) {
         Long userId = requireCurrentUserId();
@@ -39,7 +42,7 @@ public class FriendGroupController extends BaseAuthController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<FriendGroupResponse>> getMyGroups(Pageable pageable) {
+    public ResponseEntity<Page<FriendGroupResponse>> getMyGroups(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(friendGroupService.getMyGroups(userId, pageable));
     }
@@ -56,6 +59,7 @@ public class FriendGroupController extends BaseAuthController {
         return ResponseEntity.ok(friendGroupService.joinByInviteCode(userId, request.inviteCode()));
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{id}/leave")
     public ResponseEntity<Void> leave(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
@@ -64,7 +68,7 @@ public class FriendGroupController extends BaseAuthController {
     }
 
     @GetMapping("/{id}/common-events")
-    public ResponseEntity<Page<EventCardResponse>> getCommonEvents(@PathVariable Long id, Pageable pageable) {
+    public ResponseEntity<Page<EventCardResponse>> getCommonEvents(@PathVariable Long id, @ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(friendGroupService.getCommonEvents(id, userId, pageable));
     }

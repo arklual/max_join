@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/support")
@@ -34,7 +35,7 @@ public class SupportController extends BaseAuthController {
     }
 
     @GetMapping("/ticket/messages")
-    public ResponseEntity<Page<SupportMessageResponse>> getMessages(Pageable pageable) {
+    public ResponseEntity<Page<SupportMessageResponse>> getMessages(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(supportService.getMessages(userId, pageable));
     }

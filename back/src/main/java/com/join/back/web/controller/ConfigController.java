@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 /**
  * Public read-only configuration that the client app needs at boot time —
  * notably the MAX bot username, used to build {@code max.ru/<bot>?startapp=...}
  * deep links for QR codes and friend-group invites.
  */
+@SecurityRequirements
 @RestController
 @RequestMapping("/api/config")
 @RequiredArgsConstructor

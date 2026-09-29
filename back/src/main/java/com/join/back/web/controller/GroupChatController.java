@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springdoc.core.annotations.ParameterObject;
 
 @RestController
 @RequestMapping("/api/group-chats")
@@ -34,7 +36,7 @@ public class GroupChatController extends BaseAuthController {
     @GetMapping("/{groupChatId}/messages")
     public ResponseEntity<Page<GroupChatMessageResponse>> getMessages(
             @PathVariable Long groupChatId,
-            Pageable pageable
+            @ParameterObject Pageable pageable
     ) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(groupService.getGroupMessages(groupChatId, userId, pageable));
@@ -46,6 +48,7 @@ public class GroupChatController extends BaseAuthController {
         return ResponseEntity.ok(iceBreakerService.getGroupIceBreakers(groupChatId, userId));
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/{groupChatId}/messages")
     public ResponseEntity<GroupChatMessageResponse> sendMessage(
             @PathVariable Long groupChatId,

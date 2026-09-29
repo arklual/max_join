@@ -11,16 +11,19 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Map;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("error", exception.getMessage()));
     }
 
+    @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(UserActionException.class)
     public ResponseEntity<Map<String, String>> handleUserAction(UserActionException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -38,12 +41,14 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", message));
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", exception.getMessage()));
     }
 
+    @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)

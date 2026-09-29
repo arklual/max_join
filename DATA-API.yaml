@@ -1,0 +1,275 @@
+# Обязательные проверки API JOIN — основной сценарий от входа до чата с напарником.
+# Выполнить все проверки: python3 scripts/check-api.py (см. README, раздел «Проверка API»).
+#
+# Подстановки: ${VAR} — переменная окружения, {name} — значение из test_data или сохранённое
+# предыдущей проверкой (save). Путь к полю: a.b[0].c; list[field=value].x — первый элемент
+# с таким полем; list[*].x — значения у всех элементов. Путь, начинающийся с «[», — от корня-массива.
+
+schema_version: "1.0"
+solution: "JOIN — с кем сходить на событие"
+team: "JOIN"
+base_url: "https://2-27-20-14.sslip.io"
+openapi: "openapi.json"
+
+roles:
+  anonymous:
+    description: "Без авторизации"
+  user_a:
+    description: "Тестовый пользователь А: 18+, город из test_data.city, без фильтров поиска"
+    email: "${JOIN_USER_A_EMAIL}"
+    password: "${JOIN_USER_A_PASSWORD}"
+    headers:
+      Authorization: "Bearer {token_a}"
+  user_b:
+    description: "Тестовый пользователь Б: те же условия, что у А"
+    email: "${JOIN_USER_B_EMAIL}"
+    password: "${JOIN_USER_B_PASSWORD}"
+    headers:
+      Authorization: "Bearer {token_b}"
+
+# Данные событий реальные и меняются каждый день, поэтому событие для проверки выбирается
+# из ленты на лету: ближайшее, которое ещё никто не сохранил. В конце лайки снимаются —
+# совпадение и чат удаляются, и проверку можно повторить (до 5 прогонов в день на аккаунт:
+# лимит — 10 лайков в сутки).
+test_data:
+  city: "Казань"
+  message_text: "Привет! Идём вместе?"
+
+checks:
+  - id: health
+    title: "Сервис и база данных доступны"
+    required: true
+    role: anonymous
+    request: { method: GET, path: /api/health }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [status, db]
+      equals: { status: UP, db: UP }
+
+  - id: openapi
+    title: "Спецификация OpenAPI отдаётся сервисом"
+    required: false
+    role: anonymous
+    request: { method: GET, path: /v3/api-docs }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [openapi, paths]
+
+  - id: auth_required
+    title: "Без авторизации защищённые методы недоступны"
+    required: true
+    role: anonymous
+    request: { method: GET, path: /api/users/me }
+    expect:
+      status: [403]
+
+  - id: register_requires_consent
+    title: "Регистрация без согласия на обработку данных отклоняется"
+    required: true
+    role: anonymous
+    request:
+      method: POST
+      path: /api/auth/register
+      body:
+        email: "no-consent-check@example.com"
+        password: "checkpass123"
+        firstName: "Проверка"
+        age: 20
+        gender: MALE
+        city: "{city}"
+        interests: [MUSIC]
+        personalDataConsent: false
+    expect:
+      status: [400]
+      content_type: application/json
+      equals: { code: VALIDATION_FAILED }
+
+  - id: login_bad_password
+    title: "Неверный пароль — 401"
+    required: true
+    role: anonymous
+    request:
+      method: POST
+      path: /api/auth/login
+      body: { email: "${JOIN_USER_A_EMAIL}", password: "wrong-password" }
+    expect:
+      status: [401]
+      content_type: application/json
+      equals: { code: BAD_CREDENTIALS }
+
+  - id: login_user_a
+    title: "Вход пользователя А по email"
+    required: true
+    role: anonymous
+    request:
+      method: POST
+      path: /api/auth/login
+      body: { email: "${JOIN_USER_A_EMAIL}", password: "${JOIN_USER_A_PASSWORD}" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [token, user.id, user.city, user.personalDataConsent]
+    save: { token_a: token, user_a_id: user.id }
+
+  - id: login_user_b
+    title: "Вход пользователя Б по email"
+    required: true
+    role: anonymous
+    request:
+      method: POST
+      path: /api/auth/login
+      body: { email: "${JOIN_USER_B_EMAIL}", password: "${JOIN_USER_B_PASSWORD}" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [token, user.id]
+    save: { token_b: token, user_b_id: user.id }
+
+  - id: profile
+    title: "Профиль текущего пользователя"
+    required: true
+    role: user_a
+    request: { method: GET, path: /api/users/me }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [id, firstName, city, age, interests, personalDataConsent]
+      equals: { id: "{user_a_id}", personalDataConsent: true }
+
+  - id: afisha
+    title: "Афиша города: события с датой, ценой и отметкой Пушкинской карты"
+    required: true
+    role: user_a
+    request:
+      method: GET
+      path: /api/events
+      query: { city: "{city}", size: 50 }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [content, totalElements, "content[0].id", "content[0].title", "content[0].eventDate", "content[0].pushkinCard"]
+    save: { event_id: "content[interestedCount=0,liked=false].id" }
+
+  - id: afisha_pushkin
+    title: "Фильтр «По Пушкинской»: только события, которые можно оплатить картой"
+    required: true
+    role: user_a
+    request:
+      method: GET
+      path: /api/events
+      query: { city: "{city}", pushkinCard: true, size: 20 }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: ["content[0].id"]
+      all: { "content[*].pushkinCard": true }
+
+  - id: event_details
+    title: "Карточка события со ссылкой на покупку билета"
+    required: true
+    role: user_a
+    request: { method: GET, path: "/api/events/{event_id}" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [id, title, eventDate, city, ticketUrl, interestedCount]
+      equals: { id: "{event_id}", liked: false }
+
+  - id: like_by_a
+    title: "А сохраняет событие — компании пока нет"
+    required: true
+    role: user_a
+    request: { method: POST, path: "/api/events/{event_id}/like" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [matches, othersInterested]
+      equals: { othersInterested: 0 }
+
+  - id: like_by_b
+    title: "Б сохраняет то же событие — сразу находится компания с А"
+    required: true
+    role: user_b
+    request: { method: POST, path: "/api/events/{event_id}/like" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: ["matches[companionId={user_a_id}].matchId"]
+    save: { match_id: "matches[companionId={user_a_id}].matchId" }
+
+  - id: match_for_a
+    title: "Совпадение видно А; чата ещё нет"
+    required: true
+    role: user_a
+    request: { method: GET, path: /api/matches }
+    expect:
+      status: [200]
+      content_type: application/json
+      equals: { "[id={match_id}].status": NEW, "[id={match_id}].companionId": "{user_b_id}" }
+
+  - id: invite_by_b
+    title: "Б зовёт пойти вместе"
+    required: true
+    role: user_b
+    request: { method: POST, path: "/api/matches/{match_id}/request" }
+    expect:
+      status: [200]
+      content_type: application/json
+      equals: { status: REQUESTED, requestedByMe: true }
+
+  - id: accept_by_a
+    title: "А отвечает «Пойдём» — открывается чат"
+    required: true
+    role: user_a
+    request: { method: POST, path: "/api/matches/{match_id}/accept" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [chatId]
+      equals: { status: ACCEPTED }
+    save: { chat_id: chatId }
+
+  - id: message_by_a
+    title: "А пишет в чат"
+    required: true
+    role: user_a
+    request:
+      method: POST
+      path: "/api/chats/{chat_id}/messages"
+      body: { text: "{message_text}" }
+    expect:
+      status: [200]
+      content_type: application/json
+      required_fields: [id, createdAt]
+      equals: { chatId: "{chat_id}", senderId: "{user_a_id}", text: "{message_text}" }
+
+  - id: messages_for_b
+    title: "Б видит сообщение"
+    required: true
+    role: user_b
+    request:
+      method: GET
+      path: "/api/chats/{chat_id}/messages"
+      query: { size: 20 }
+    expect:
+      status: [200]
+      content_type: application/json
+      contains: { "content[*].text": "{message_text}" }
+
+  - id: cleanup_a
+    title: "Уборка: А снимает лайк — совпадение и чат удаляются"
+    required: true
+    role: user_a
+    request: { method: DELETE, path: "/api/events/{event_id}/like" }
+    expect:
+      status: [200]
+
+  - id: cleanup_b
+    title: "Уборка: Б снимает лайк"
+    required: true
+    role: user_b
+    request: { method: DELETE, path: "/api/events/{event_id}/like" }
+    expect:
+      status: [200]

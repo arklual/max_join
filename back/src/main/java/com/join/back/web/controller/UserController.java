@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import com.join.back.security.MessengerAuthenticationToken;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestController
 @RequestMapping("/api/users")
@@ -39,6 +40,7 @@ public class UserController extends BaseAuthController {
         this.accountDeletionService = accountDeletionService;
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> register(
             @RequestParam(value = "email", required = false) String email,
@@ -94,6 +96,7 @@ public class UserController extends BaseAuthController {
     }
 
     /** Consent to the privacy policy for accounts created before it was asked at sign-up. */
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/me/consent")
     public ResponseEntity<Void> acceptPersonalDataConsent() {
         userService.acceptPersonalDataConsent(requireCurrentUserId());
@@ -101,6 +104,7 @@ public class UserController extends BaseAuthController {
     }
 
     /** Deletes the account and everything tied to it — withdraws consent to data processing. */
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount() {
         accountDeletionService.deleteAccount(requireCurrentUserId());
