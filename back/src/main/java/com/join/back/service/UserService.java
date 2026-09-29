@@ -124,7 +124,8 @@ public class UserService {
         if (!AgePolicy.canMeet(viewer, user)) {
             throw new EntityNotFoundException("User not found with id: " + userId);
         }
-        return userMapper.toProfileResponse(user);
+        UserProfileResponse profile = userMapper.toProfileResponse(user);
+        return viewerId.equals(userId) ? profile : profile.forOthers();
     }
 
     /** Consent for accounts created before it was asked at sign-up. */

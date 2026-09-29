@@ -121,6 +121,25 @@ class UserServiceTest {
     }
 
     @Test
+    void othersDoNotSeeEmailOrMaxId() {
+        User viewer = createTestUser();
+        User other = createTestUser();
+        other.setId(2L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(viewer));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(other));
+        when(userMapper.toProfileResponse(other)).thenReturn(new UserProfileResponse(
+                2L, 555L, "other@example.com", "Moscow", "Ann", null, Gender.FEMALE, 20, null,
+                List.of("MUSIC"), null, null, null, null, null, true));
+
+        UserProfileResponse result = userService.getProfileById(1L, 2L);
+
+        assertEquals("Ann", result.firstName());
+        assertEquals(null, result.email());
+        assertEquals(null, result.maxId());
+        assertEquals(false, result.hasPassword());
+    }
+
+    @Test
     void acceptConsentKeepsFirstTimestamp() {
         User user = createTestUser();
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
