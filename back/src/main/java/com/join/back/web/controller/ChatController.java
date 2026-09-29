@@ -92,6 +92,18 @@ public class ChatController extends BaseAuthController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}/pin")
+    public ResponseEntity<Void> pinChat(@PathVariable Long id) {
+        chatService.setPinned(id, requireCurrentUserId(), true);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/pin")
+    public ResponseEntity<Void> unpinChat(@PathVariable Long id) {
+        chatService.setPinned(id, requireCurrentUserId(), false);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteChat(@PathVariable Long id) {
         Long userId = requireCurrentUserId();

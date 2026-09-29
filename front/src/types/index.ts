@@ -33,6 +33,8 @@ export interface Chat {
   unreadCount: number;
   /** Personal black list between the two, if any. */
   blockStatus: 'BLOCKED_BY_ME' | 'BLOCKED_ME' | null;
+  /** Pinned to the top of my chat list. */
+  pinned: boolean;
 }
 
 export interface ChatMessage {

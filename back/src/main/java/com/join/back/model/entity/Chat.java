@@ -47,4 +47,14 @@ public class Chat {
 
     @Column(name = "user2_deleted_at")
     private LocalDateTime user2DeletedAt;
+
+    @Column(name = "user1_pinned_at")
+    private LocalDateTime user1PinnedAt;
+
+    @Column(name = "user2_pinned_at")
+    private LocalDateTime user2PinnedAt;
+
+    public LocalDateTime pinnedAtFor(Long userId) {
+        return user1Id.equals(userId) ? user1PinnedAt : user2PinnedAt;
+    }
 }

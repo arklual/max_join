@@ -30,6 +30,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -124,6 +127,43 @@ class ChatServiceTest {
         assertEquals(1, result.size());
         assertEquals("Jane", result.get(0).companionName());
         assertEquals("Concert", result.get(0).eventTitle());
+    }
+
+    @Test
+    void pinnedChatsGoFirst() {
+        Long userId = 1L;
+        Chat pinned = Chat.builder().id(1L).user1Id(1L).user2Id(2L).eventId(10L).matchId(100L)
+                .createdAt(FIXED_CREATED_AT).user1PinnedAt(FIXED_CREATED_AT).build();
+        Chat recent = Chat.builder().id(2L).user1Id(3L).user2Id(1L).eventId(10L).matchId(101L)
+                .createdAt(FIXED_CREATED_AT).user1PinnedAt(FIXED_CREATED_AT).build();
+        ChatMessage fresh = ChatMessage.builder().id(5L).chatId(2L).senderId(3L).text("Привет")
+                .createdAt(FIXED_CREATED_AT.plusDays(1)).build();
+
+        when(chatRepository.findByUserId(userId)).thenReturn(List.of(recent, pinned));
+        when(userRepository.findAllById(any())).thenReturn(List.of());
+        when(eventRepository.findAllById(any())).thenReturn(List.of());
+        when(chatMessageRepository.findLastMessageByChatId(1L)).thenReturn(Optional.empty());
+        when(chatMessageRepository.findLastMessageByChatId(2L)).thenReturn(Optional.of(fresh));
+
+        List<ChatResponse> result = chatService.getChats(userId);
+
+        assertEquals(List.of(1L, 2L), result.stream().map(ChatResponse::id).toList());
+        assertTrue(result.get(0).pinned());
+        assertFalse(result.get(1).pinned());
+    }
+
+    @Test
+    void shouldPinAndUnpinOnlyForCurrentUser() {
+        Chat chat = Chat.builder().id(1L).user1Id(1L).user2Id(2L).eventId(10L).matchId(100L)
+                .createdAt(FIXED_CREATED_AT).build();
+        when(chatRepository.findById(1L)).thenReturn(Optional.of(chat));
+
+        chatService.setPinned(1L, 2L, true);
+        assertNotNull(chat.getUser2PinnedAt());
+        assertNull(chat.getUser1PinnedAt());
+
+        chatService.setPinned(1L, 2L, false);
+        assertNull(chat.getUser2PinnedAt());
     }
 
     @Test

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router';
+import { alpha } from '@mui/material/styles';
 import { createStompClient } from '../api/realtime';
 import apiClient from '../api/client';
 import { mediaUrl } from '../api/platform';
@@ -37,19 +38,32 @@ import {
   ExpandMore,
   ChatBubbleOutline,
   DeleteOutline,
+  PushPin,
+  PushPinOutlined,
 } from '@mui/icons-material';
 import MatchSuggestions from '../components/MatchSuggestions';
 
-const SWIPE_THRESHOLD = 80;
+const ACTION_WIDTH = 80;
+
+// Touch devices use swipe actions; an invisible button would still catch taps.
+const HOVER_ACTION_SX = {
+  display: 'none',
+  '@media (hover: hover)': { display: 'inline-flex', opacity: 0 },
+  '.MuiListItemButton-root:hover &': { opacity: 1 },
+  transition: 'opacity 0.2s',
+  flexShrink: 0,
+} as const;
+const SWIPE_THRESHOLD = ACTION_WIDTH * 2;
 
 interface SwipeableChatItemProps {
   chat: Chat;
   onClick: () => void;
   onDelete: () => void;
+  onTogglePin: () => void;
   isLast: boolean;
 }
 
-function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatItemProps) {
+function SwipeableChatItem({ chat, onClick, onDelete, onTogglePin, isLast }: SwipeableChatItemProps) {
   const startXRef = useRef(0);
   const currentXRef = useRef(0);
   const swipingRef = useRef(false);
@@ -76,7 +90,7 @@ function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatIte
   }
 
   function handleTouchEnd() {
-    if (currentXRef.current < -SWIPE_THRESHOLD) {
+    if (currentXRef.current < -ACTION_WIDTH) {
       setOffsetX(-SWIPE_THRESHOLD);
       setShowDelete(true);
     } else {
@@ -95,16 +109,44 @@ function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatIte
     onClick();
   }
 
+  function handleTogglePin() {
+    setOffsetX(0);
+    setShowDelete(false);
+    onTogglePin();
+  }
+
+  const pinLabel = chat.pinned ? 'Открепить чат' : 'Закрепить чат';
+
   return (
     <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-      {/* Delete background */}
+      {/* Swipe actions: pin/unpin and delete */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: ACTION_WIDTH,
+          top: 0,
+          bottom: 0,
+          width: ACTION_WIDTH,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'primary.main',
+          color: 'onPrimary.main',
+          cursor: 'pointer',
+        }}
+        onClick={handleTogglePin}
+        role="button"
+        aria-label={pinLabel}
+      >
+        {chat.pinned ? <PushPinOutlined /> : <PushPin />}
+      </Box>
       <Box
         sx={{
           position: 'absolute',
           right: 0,
           top: 0,
           bottom: 0,
-          width: SWIPE_THRESHOLD,
+          width: ACTION_WIDTH,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -131,6 +173,11 @@ function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatIte
           bgcolor: 'background.paper',
           position: 'relative',
           zIndex: 1,
+          // Opaque tint over the paper so the swipe actions stay hidden underneath.
+          backgroundImage: (theme) => {
+            const tint = alpha(theme.palette.primary.main, 0.06);
+            return chat.pinned ? `linear-gradient(${tint}, ${tint})` : 'none';
+          },
         }}
       >
         <ListItemButton
@@ -171,6 +218,12 @@ function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatIte
                 >
                   {chat.companionName ?? 'Без имени'}
                 </Typography>
+                {chat.pinned && (
+                  <PushPin
+                    aria-label="Закреплён"
+                    sx={{ fontSize: '0.95rem', color: 'text.secondary', transform: 'rotate(45deg)', flexShrink: 0 }}
+                  />
+                )}
                 {chat.lastMessageTime && (
                   <Typography
                     variant="caption"
@@ -216,17 +269,19 @@ function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatIte
           />
           <IconButton
             size="small"
+            onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
+            sx={{ ...HOVER_ACTION_SX, color: 'primary.main' }}
+            aria-label={pinLabel}
+            title={pinLabel}
+          >
+            {chat.pinned ? <PushPinOutlined fontSize="small" /> : <PushPin fontSize="small" />}
+          </IconButton>
+          <IconButton
+            size="small"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            sx={{
-              // Touch devices delete via swipe; an invisible button would still catch taps.
-              display: 'none',
-              '@media (hover: hover)': { display: 'inline-flex', opacity: 0 },
-              '.MuiListItemButton-root:hover &': { opacity: 1 },
-              transition: 'opacity 0.2s',
-              color: 'error.main',
-              flexShrink: 0,
-            }}
+            sx={{ ...HOVER_ACTION_SX, color: 'error.main' }}
             aria-label="Удалить чат"
+            title="Удалить чат"
           >
             <DeleteOutline fontSize="small" />
           </IconButton>
@@ -235,6 +290,12 @@ function SwipeableChatItem({ chat, onClick, onDelete, isLast }: SwipeableChatIte
       </Box>
     </Box>
   );
+}
+
+/** Optimistic reorder until the server list arrives: pinned first, then by the last message. */
+function sortChats(chats: Chat[]): Chat[] {
+  const time = (c: Chat) => (c.lastMessageTime ? new Date(c.lastMessageTime).getTime() : 0);
+  return [...chats].sort((a, b) => Number(b.pinned) - Number(a.pinned) || (a.pinned ? 0 : time(b) - time(a)));
 }
 
 export default function ChatsListScreen() {
@@ -286,6 +347,17 @@ export default function ChatsListScreen() {
 
   function handleChatClick(chatId: number) {
     navigate(`/chats/${chatId}`);
+  }
+
+  async function handleTogglePin(chat: Chat) {
+    const pinned = !chat.pinned;
+    setChats((prev) => sortChats(prev.map((c) => (c.id === chat.id ? { ...c, pinned } : c))));
+    try {
+      if (pinned) await apiClient.put(`/chats/${chat.id}/pin`);
+      else await apiClient.delete(`/chats/${chat.id}/pin`);
+    } finally {
+      loadChats(true);
+    }
   }
 
   async function handleDeleteConfirm() {
@@ -399,6 +471,7 @@ export default function ChatsListScreen() {
                 chat={chat}
                 onClick={() => handleChatClick(chat.id)}
                 onDelete={() => setDeleteTarget(chat)}
+                onTogglePin={() => handleTogglePin(chat)}
                 isLast={index === chats.length - 1}
               />
             </Box>

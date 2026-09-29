@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 049-add-pinned-to-chats
+      author: join-team
+      comment: Each side can pin a chat to the top of their own list.
+      changes:
+        - addColumn:
+            tableName: chats
+            columns:
+              - column:
+                  name: user1_pinned_at
+                  type: TIMESTAMP
+              - column:
+                  name: user2_pinned_at
+                  type: TIMESTAMP

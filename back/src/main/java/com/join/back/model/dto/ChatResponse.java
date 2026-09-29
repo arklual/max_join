@@ -13,6 +13,7 @@ public record ChatResponse(
         LocalDateTime lastMessageTime,
         long unreadCount,
         /** BLOCKED_BY_ME, BLOCKED_ME or null — personal black list between the two. */
-        String blockStatus
+        String blockStatus,
+        boolean pinned
 ) {
 }

@@ -77,6 +77,8 @@ public class ChatService {
                     ChatMessage last = chatMessageRepository.findLastMessageByChatId(chat.getId()).orElse(null);
                     return last != null && last.getCreatedAt().isAfter(deletedAt);
                 })
+                .sorted(Comparator.comparing((Chat chat) -> chat.pinnedAtFor(userId),
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(chat -> {
                     Long companionId = chat.getUser1Id().equals(userId) ? chat.getUser2Id() : chat.getUser1Id();
                     User companion = usersMap.get(companionId);
@@ -98,11 +100,14 @@ public class ChatService {
                             lastMessage != null ? lastMessage.getText() : null,
                             lastMessage != null ? lastMessage.getCreatedAt() : null,
                             unreadCount,
-                            blockStatus(userId, companionId)
+                            blockStatus(userId, companionId),
+                            chat.pinnedAtFor(userId) != null
                     );
                 })
-                .sorted(Comparator.comparing(ChatResponse::lastMessageTime,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
+                // Pinned chats stay on top (latest pinned first), the rest go by the last message.
+                .sorted(Comparator.comparing(ChatResponse::pinned).reversed()
+                        .thenComparing(response -> response.pinned() ? null : response.lastMessageTime(),
+                                Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
     }
 
@@ -208,8 +213,26 @@ public class ChatService {
 
         if (chat.getUser1Id().equals(userId)) {
             chat.setUser1DeletedAt(LocalDateTime.now());
+            chat.setUser1PinnedAt(null);
         } else {
             chat.setUser2DeletedAt(LocalDateTime.now());
+            chat.setUser2PinnedAt(null);
+        }
+        chatRepository.save(chat);
+    }
+
+    @Transactional(transactionManager = "transactionManager")
+    public void setPinned(Long chatId, Long userId, boolean pinned) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new EntityNotFoundException("Chat not found with id: " + chatId));
+
+        verifyAccess(chat, userId);
+
+        LocalDateTime pinnedAt = pinned ? LocalDateTime.now() : null;
+        if (chat.getUser1Id().equals(userId)) {
+            chat.setUser1PinnedAt(pinnedAt);
+        } else {
+            chat.setUser2PinnedAt(pinnedAt);
         }
         chatRepository.save(chat);
     }
