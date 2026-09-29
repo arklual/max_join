@@ -119,7 +119,8 @@ public class MatchService {
     }
 
     boolean isMutualCriteriaMatch(User userA, User userB) {
-        return fitsUserCriteria(userA, userB) && fitsUserCriteria(userB, userA);
+        return AgePolicy.canMeet(userA, userB)
+                && fitsUserCriteria(userA, userB) && fitsUserCriteria(userB, userA);
     }
 
     private boolean fitsUserCriteria(User candidate, User criteriaOwner) {

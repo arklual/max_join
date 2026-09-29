@@ -121,6 +121,8 @@ public class AuthService {
                 .city(city)
                 .interests(interests)
                 .createdAt(LocalDateTime.now(clock))
+                // Both sign-up requests are rejected without the consent checkbox (@AssertTrue).
+                .personalDataConsentAt(LocalDateTime.now(clock))
                 .build();
 
         if (universityId != null) {

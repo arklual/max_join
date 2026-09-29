@@ -101,8 +101,9 @@ class GroupControllerTest {
 
     @Test
     void shouldGetGroupsForEvent() throws Exception {
+        setupAuthentication();
         Page<GroupResponse> page = new PageImpl<>(List.of(sampleGroupResponse), PageRequest.of(0, 20), 1);
-        when(groupService.getGroupsForEvent(eq(10L), any())).thenReturn(page);
+        when(groupService.getGroupsForEvent(eq(10L), eq(1L), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/events/10/groups"))
                 .andExpect(status().isOk())
@@ -112,7 +113,8 @@ class GroupControllerTest {
 
     @Test
     void shouldGetGroupById() throws Exception {
-        when(groupService.getGroupById(100L)).thenReturn(sampleGroupResponse);
+        setupAuthentication();
+        when(groupService.getGroupById(100L, 1L)).thenReturn(sampleGroupResponse);
 
         mockMvc.perform(get("/api/groups/100"))
                 .andExpect(status().isOk())

@@ -56,7 +56,7 @@ class MaxLoginServiceTest {
         assertTrue(service.confirm(started.token(), 777L).isEmpty());
         assertEquals(MaxLoginService.Status.NEEDS_REGISTRATION, service.poll(started.token()).status());
 
-        MaxRegisterRequest req = new MaxRegisterRequest("Аня", 20, "FEMALE", "Москва", null, List.of("MUSIC"));
+        MaxRegisterRequest req = new MaxRegisterRequest("Аня", 20, "FEMALE", "Москва", null, List.of("MUSIC"), true);
         when(authService.registerWithMax(777L, req)).thenReturn(new AuthResponse("jwt", null));
         assertEquals("jwt", service.register(started.token(), req).token());
         verify(authService).registerWithMax(777L, req);

@@ -90,6 +90,9 @@ public class User {
     @Column(name = "preferred_university_id")
     private Long preferredUniversityId;
 
+    @Column(name = "personal_data_consent_at")
+    private LocalDateTime personalDataConsentAt;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "user_interests", joinColumns = @JoinColumn(name = "user_id"))
     @Enumerated(EnumType.STRING)

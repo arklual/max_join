@@ -10,6 +10,7 @@ import com.join.back.model.entity.Gender;
 import com.join.back.model.entity.User;
 import com.join.back.repository.UserRepository;
 import com.join.back.security.MaxAuthenticationToken;
+import com.join.back.service.AccountDeletionService;
 import com.join.back.service.UserService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -29,10 +30,14 @@ import java.util.Optional;
 import com.join.back.security.Messenger;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -58,16 +63,20 @@ class UserControllerTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private AccountDeletionService accountDeletionService;
+
     @Test
     void shouldRegisterUser() throws Exception {
         setAuthentication();
 
         UserResponse response = new UserResponse(
                 1L, TELEGRAM_ID, "test@example.com", "Moscow", "John",
-                Gender.MALE, 25, List.of("MUSIC", "ART"), null, null, null
+                Gender.MALE, 25, List.of("MUSIC", "ART"), null, null, null, true
         );
 
-        when(userService.register(eq(Messenger.MAX), eq(TELEGRAM_ID), any(UserRegistrationRequest.class), any())).thenReturn(response);
+        when(userService.register(eq(Messenger.MAX), eq(TELEGRAM_ID),
+                argThat(UserRegistrationRequest::personalDataConsent), any())).thenReturn(response);
 
         mockMvc.perform(multipart("/api/users/register")
                         .param("email", "test@example.com")
@@ -75,7 +84,8 @@ class UserControllerTest {
                         .param("name", "John")
                         .param("gender", "MALE")
                         .param("age", "25")
-                        .param("interests", "MUSIC", "ART"))
+                        .param("interests", "MUSIC", "ART")
+                        .param("personalDataConsent", "true"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.maxId").value(TELEGRAM_ID))
@@ -93,7 +103,7 @@ class UserControllerTest {
 
         UserResponse response = new UserResponse(
                 1L, TELEGRAM_ID, null, "Moscow", "John",
-                Gender.MALE, 25, List.of("MUSIC"), null, null, null
+                Gender.MALE, 25, List.of("MUSIC"), null, null, null, true
         );
 
         when(userService.register(eq(Messenger.MAX), eq(TELEGRAM_ID), any(UserRegistrationRequest.class), any())).thenReturn(response);
@@ -230,6 +240,28 @@ class UserControllerTest {
                         .file(file))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.photo").value("/uploads/photos/photo.jpg"));
+    }
+
+    @Test
+    void shouldDeleteOwnAccount() throws Exception {
+        setAuthentication();
+        when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.of(buildTestUser()));
+
+        mockMvc.perform(delete("/api/users/me"))
+                .andExpect(status().isNoContent());
+
+        verify(accountDeletionService).deleteAccount(USER_ID);
+    }
+
+    @Test
+    void shouldAcceptConsent() throws Exception {
+        setAuthentication();
+        when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.of(buildTestUser()));
+
+        mockMvc.perform(post("/api/users/me/consent"))
+                .andExpect(status().isNoContent());
+
+        verify(userService).acceptPersonalDataConsent(USER_ID);
     }
 
     private void setAuthentication() {

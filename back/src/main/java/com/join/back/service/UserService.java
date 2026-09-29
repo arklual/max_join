@@ -30,6 +30,8 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class UserService {
 
+    static final String CONSENT_REQUIRED = "Нужно согласие на обработку персональных данных";
+
     private final UserRepository userRepository;
     private final UniversityRepository universityRepository;
     private final UserMapper userMapper;
@@ -45,10 +47,15 @@ public class UserService {
         if (findByMessengerId(messenger, externalId).isPresent()) {
             throw new IllegalStateException("User with " + messenger + " id " + externalId + " already exists");
         }
+        AgePolicy.requireAllowedAge(request.age());
+        if (!request.personalDataConsent()) {
+            throw new IllegalArgumentException(CONSENT_REQUIRED);
+        }
 
         User user = userMapper.toEntity(request);
         setMessengerId(user, messenger, externalId);
         user.setCreatedAt(LocalDateTime.now());
+        user.setPersonalDataConsentAt(user.getCreatedAt());
 
         if (request.universityId() != null) {
             University university = universityRepository.findById(request.universityId())
@@ -107,11 +114,28 @@ public class UserService {
         return userMapper.toProfileResponse(user);
     }
 
+    /** Someone else's profile; teenagers and adults don't see each other (AgePolicy). */
     @Transactional(readOnly = true, transactionManager = "transactionManager")
-    public UserProfileResponse getProfileById(Long userId) {
+    public UserProfileResponse getProfileById(Long viewerId, Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        User viewer = userRepository.findById(viewerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + viewerId));
+        if (!AgePolicy.canMeet(viewer, user)) {
+            throw new EntityNotFoundException("User not found with id: " + userId);
+        }
         return userMapper.toProfileResponse(user);
+    }
+
+    /** Consent for accounts created before it was asked at sign-up. */
+    @Transactional(transactionManager = "transactionManager")
+    public void acceptPersonalDataConsent(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        if (user.getPersonalDataConsentAt() == null) {
+            user.setPersonalDataConsentAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
     }
 
     @Transactional(transactionManager = "transactionManager")

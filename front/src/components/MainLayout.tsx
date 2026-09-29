@@ -12,6 +12,7 @@ import Groups from '@mui/icons-material/Groups';
 import PersonOutline from '@mui/icons-material/PersonOutline';
 import type { ReactElement } from 'react';
 import NotificationsBell from './NotificationsBell';
+import ConsentGate from './ConsentGate';
 
 interface TabItem {
   path: string;
@@ -118,6 +119,7 @@ export default function MainLayout() {
           ))}
         </BottomNavigation>
       </Paper>
+      <ConsentGate />
     </Box>
   );
 }

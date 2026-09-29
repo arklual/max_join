@@ -16,6 +16,9 @@ import {
   FormHelperText,
   Box,
   IconButton,
+  Checkbox,
+  FormControlLabel,
+  Link,
 } from '@mui/material';
 import { CloudUploadOutlined, DeleteOutline } from '@mui/icons-material';
 import apiClient from '../api/client';
@@ -28,6 +31,7 @@ import UniversitySelect from '../components/UniversitySelect';
 import LinkMaxCard from '../components/LinkMaxCard';
 import CheckOutlined from '@mui/icons-material/CheckOutlined';
 import { getTagChipSx } from '../components/tagChipStyles';
+import { PrivacyPolicyDialog } from '../components/PrivacyPolicy';
 
 /** Where to go after sign-up: the invite or deep link that brought the user here. */
 function postRegistrationTarget(): string {
@@ -49,6 +53,7 @@ interface FormData {
   photo: File | null;
   universityId: number | null;
   universityName: string;
+  consent: boolean;
 }
 
 interface FormErrors {
@@ -61,6 +66,7 @@ interface FormErrors {
   age?: string;
   interests?: string;
   photo?: string;
+  consent?: string;
 }
 
 const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
@@ -98,13 +104,17 @@ function validate(data: FormData, withCredentials: boolean): FormErrors {
     const ageNum = Number(data.age);
     if (!Number.isInteger(ageNum) || ageNum < 1 || ageNum > 150) {
       errors.age = 'Введите корректный возраст';
-    } else if (withCredentials && ageNum < 14) {
+    } else if (ageNum < 14) {
       errors.age = 'Сервисом можно пользоваться с 14 лет';
     }
   }
 
   if (data.interests.length === 0) {
     errors.interests = 'Выберите хотя бы один интерес';
+  }
+
+  if (!data.consent) {
+    errors.consent = 'Нужно согласие на обработку персональных данных';
   }
 
   return errors;
@@ -132,12 +142,14 @@ export default function RegistrationScreen() {
     photo: null,
     universityId: null,
     universityName: '',
+    consent: false,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [policyOpen, setPolicyOpen] = useState(false);
 
   function handleInputChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     const { name, value } = e.target;
@@ -225,6 +237,7 @@ export default function RegistrationScreen() {
       city: formData.city.trim(),
       universityId: formData.universityId,
       interests: formData.interests,
+      personalDataConsent: formData.consent,
     });
     setAuthToken(res.data.token);
     await uploadPhotoIfAny();
@@ -240,6 +253,7 @@ export default function RegistrationScreen() {
       city: formData.city.trim(),
       universityId: formData.universityId,
       interests: formData.interests,
+      personalDataConsent: formData.consent,
     });
     setAuthToken(res.data.token);
     await uploadPhotoIfAny();
@@ -283,6 +297,7 @@ export default function RegistrationScreen() {
       if (formData.photo) {
         payload.append('photo', formData.photo);
       }
+      payload.append('personalDataConsent', String(formData.consent));
 
       await apiClient.post('/users/register', payload, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -444,7 +459,7 @@ export default function RegistrationScreen() {
             name="age"
             type="number"
             placeholder="25"
-            inputProps={{ min: 1, max: 150, inputMode: 'numeric' }}
+            inputProps={{ min: 14, max: 150, inputMode: 'numeric' }}
             value={formData.age}
             onChange={handleInputChange}
             error={!!errors.age}
@@ -546,6 +561,44 @@ export default function RegistrationScreen() {
             {errors.photo && <FormHelperText error>{errors.photo}</FormHelperText>}
           </Box>
 
+          {/* Consent to personal data processing */}
+          <Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.consent}
+                  onChange={(e) => {
+                    setFormData((prev) => ({ ...prev, consent: e.target.checked }));
+                    setErrors((prev) => ({ ...prev, consent: undefined }));
+                    setServerError('');
+                  }}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ color: 'onSurface.main' }}>
+                  Принимаю{' '}
+                  <Link
+                    component="button"
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setPolicyOpen(true);
+                    }}
+                    sx={{ verticalAlign: 'baseline' }}
+                  >
+                    политику конфиденциальности
+                  </Link>{' '}
+                  и даю согласие на обработку персональных данных
+                </Typography>
+              }
+              sx={{ alignItems: 'flex-start', mr: 0, '& .MuiCheckbox-root': { mt: -0.75 } }}
+            />
+            {errors.consent && <FormHelperText error>{errors.consent}</FormHelperText>}
+            <Typography variant="caption" sx={{ display: 'block', color: 'onSurfaceVariant.main', mt: 0.5 }}>
+              До 18 лет JOIN находит компанию только среди сверстников 14–17 лет.
+            </Typography>
+          </Box>
+
           {/* Submit */}
           <Button
             type="submit"
@@ -580,6 +633,7 @@ export default function RegistrationScreen() {
           <LinkMaxCard onLinked={() => navigate(postRegistrationTarget(), { replace: true })} />
         )}
       </Paper>
+      <PrivacyPolicyDialog open={policyOpen} onClose={() => setPolicyOpen(false)} />
     </Container>
   );
 }

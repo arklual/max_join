@@ -22,4 +22,10 @@ public interface FriendGroupMemberRepository extends JpaRepository<FriendGroupMe
     List<FriendGroupMember> findByFriendGroupIdAndStatusOrderByJoinedAtAsc(Long friendGroupId, FriendGroupMemberStatus status);
 
     Page<FriendGroupMember> findByUserIdAndStatus(Long userId, FriendGroupMemberStatus status, Pageable pageable);
+
+    List<FriendGroupMember> findByUserIdAndStatus(Long userId, FriendGroupMemberStatus status);
+
+    void deleteByFriendGroupIdIn(List<Long> friendGroupIds);
+
+    void deleteByUserId(Long userId);
 }

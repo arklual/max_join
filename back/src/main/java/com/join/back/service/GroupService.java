@@ -130,6 +130,15 @@ public class GroupService {
             throw new UserActionException("Не получится вступить: в этой компании человек из чёрного списка");
         }
 
+        User joiner = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+        List<Long> memberIds = groupMemberRepository.findByGroupIdAndStatus(groupId, GroupMemberStatus.ACTIVE).stream()
+                .map(GroupMember::getUserId)
+                .toList();
+        if (userRepository.findAllById(memberIds).stream().anyMatch(m -> !AgePolicy.canMeet(joiner, m))) {
+            throw new UserActionException("Эта компания для другого возраста: до 18 лет JOIN собирает компании только из сверстников");
+        }
+
         LocalDateTime now = LocalDateTime.now();
         // Reactivate existing LEFT record if user is rejoining, otherwise create new
         Optional<GroupMember> existingMember = groupMemberRepository.findByGroupIdAndUserId(groupId, userId);
@@ -214,15 +223,26 @@ public class GroupService {
         return new LeaveGroupResponse(groupId, "You have left the group");
     }
 
+    /** Open companies the viewer may join: teenagers and adults don't see each other's (AgePolicy). */
     @Transactional(readOnly = true, transactionManager = "transactionManager")
-    public Page<GroupResponse> getGroupsForEvent(Long eventId, Pageable pageable) {
+    public Page<GroupResponse> getGroupsForEvent(Long eventId, Long viewerId, Pageable pageable) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + eventId));
+        User viewer = userRepository.findById(viewerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + viewerId));
 
         Page<GroupGathering> groups = groupGatheringRepository
                 .findByEventIdAndStatus(eventId, GroupStatus.OPEN, pageable);
+        Map<Long, User> creators = userRepository.findAllById(
+                        groups.getContent().stream().map(GroupGathering::getCreatorId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
 
         List<GroupResponse> responses = groups.getContent().stream()
+                .filter(group -> {
+                    User creator = creators.get(group.getCreatorId());
+                    return creator == null || AgePolicy.canMeet(viewer, creator);
+                })
                 .map(group -> {
                     GroupChat chat = groupChatRepository.findByGroupId(group.getId()).orElse(null);
                     List<GroupMember> members = groupMemberRepository
@@ -231,7 +251,8 @@ public class GroupService {
                 })
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(responses, pageable, groups.getTotalElements());
+        long hidden = groups.getNumberOfElements() - responses.size();
+        return new PageImpl<>(responses, pageable, groups.getTotalElements() - hidden);
     }
 
     @Transactional(readOnly = true, transactionManager = "transactionManager")
@@ -270,9 +291,15 @@ public class GroupService {
     }
 
     @Transactional(readOnly = true, transactionManager = "transactionManager")
-    public GroupResponse getGroupById(Long groupId) {
+    public GroupResponse getGroupById(Long groupId, Long viewerId) {
         GroupGathering group = groupGatheringRepository.findById(groupId)
                 .orElseThrow(() -> new EntityNotFoundException("Group not found with id: " + groupId));
+        User viewer = userRepository.findById(viewerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + viewerId));
+        User creator = userRepository.findById(group.getCreatorId()).orElse(null);
+        if (creator != null && !AgePolicy.canMeet(viewer, creator)) {
+            throw new EntityNotFoundException("Group not found with id: " + groupId);
+        }
 
         Event event = eventRepository.findById(group.getEventId())
                 .orElseThrow(() -> new EntityNotFoundException("Event not found with id: " + group.getEventId()));

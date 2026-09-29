@@ -53,7 +53,7 @@ public class GroupController extends BaseAuthController {
             @PathVariable Long eventId,
             Pageable pageable
     ) {
-        return ResponseEntity.ok(groupService.getGroupsForEvent(eventId, pageable));
+        return ResponseEntity.ok(groupService.getGroupsForEvent(eventId, requireCurrentUserId(), pageable));
     }
 
     // GET /api/events/{eventId}/groups/stats — stats for event card
@@ -65,7 +65,7 @@ public class GroupController extends BaseAuthController {
     // GET /api/groups/{id} — group details
     @GetMapping("/api/groups/{id}")
     public ResponseEntity<GroupResponse> getGroup(@PathVariable Long id) {
-        return ResponseEntity.ok(groupService.getGroupById(id));
+        return ResponseEntity.ok(groupService.getGroupById(id, requireCurrentUserId()));
     }
 
     // POST /api/groups/{id}/join — join group

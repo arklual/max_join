@@ -52,7 +52,7 @@ class UserServiceTest {
     @Test
     void shouldRegisterNewUser() {
         UserRegistrationRequest request = new UserRegistrationRequest(
-                "test@example.com", "Moscow", "John", "MALE", 25, List.of("MUSIC", "ART"), null
+                "test@example.com", "Moscow", "John", "MALE", 25, List.of("MUSIC", "ART"), null, true
         );
 
         User mappedUser = createTestUser();
@@ -61,7 +61,7 @@ class UserServiceTest {
 
         UserResponse expectedResponse = new UserResponse(
                 1L, TELEGRAM_ID, "test@example.com", "Moscow", "John",
-                Gender.MALE, 25, List.of("MUSIC", "ART"), null, null, null
+                Gender.MALE, 25, List.of("MUSIC", "ART"), null, null, null, true
         );
 
         when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.empty());
@@ -75,13 +75,69 @@ class UserServiceTest {
         assertEquals("test@example.com", result.email());
         assertEquals("John", result.firstName());
         assertEquals(TELEGRAM_ID, result.maxId());
+        assertNotNull(mappedUser.getPersonalDataConsentAt());
         verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void shouldRejectRegistrationUnder14() {
+        UserRegistrationRequest request = new UserRegistrationRequest(
+                null, "Moscow", "John", "MALE", 13, List.of("MUSIC"), null, true
+        );
+        when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.register(TELEGRAM_ID, request, null));
+
+        assertEquals(AgePolicy.MIN_AGE_MESSAGE, exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void shouldRejectRegistrationWithoutConsent() {
+        UserRegistrationRequest request = new UserRegistrationRequest(
+                null, "Moscow", "John", "MALE", 20, List.of("MUSIC"), null, false
+        );
+        when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.empty());
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> userService.register(TELEGRAM_ID, request, null));
+
+        assertEquals(UserService.CONSENT_REQUIRED, exception.getMessage());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void adultCannotOpenTeenagerProfile() {
+        User adult = createTestUser();
+        User teen = createTestUser();
+        teen.setId(2L);
+        teen.setAge(16);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(adult));
+        when(userRepository.findById(2L)).thenReturn(Optional.of(teen));
+
+        assertThrows(EntityNotFoundException.class, () -> userService.getProfileById(1L, 2L));
+        assertThrows(EntityNotFoundException.class, () -> userService.getProfileById(2L, 1L));
+    }
+
+    @Test
+    void acceptConsentKeepsFirstTimestamp() {
+        User user = createTestUser();
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        userService.acceptPersonalDataConsent(1L);
+        LocalDateTime firstConsent = user.getPersonalDataConsentAt();
+        userService.acceptPersonalDataConsent(1L);
+
+        assertNotNull(firstConsent);
+        assertEquals(firstConsent, user.getPersonalDataConsentAt());
+        verify(userRepository).save(user);
     }
 
     @Test
     void shouldRegisterNewUserWithoutEmail() {
         UserRegistrationRequest request = new UserRegistrationRequest(
-                null, "Moscow", "John", "MALE", 25, List.of("MUSIC"), null
+                null, "Moscow", "John", "MALE", 25, List.of("MUSIC"), null, true
         );
 
         User mappedUser = createTestUser();
@@ -92,7 +148,7 @@ class UserServiceTest {
 
         UserResponse expectedResponse = new UserResponse(
                 1L, TELEGRAM_ID, null, "Moscow", "John",
-                Gender.MALE, 25, List.of("MUSIC"), null, null, null
+                Gender.MALE, 25, List.of("MUSIC"), null, null, null, true
         );
 
         when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.empty());
@@ -111,7 +167,7 @@ class UserServiceTest {
     @Test
     void shouldThrowExceptionWhenRegisteringDuplicateUser() {
         UserRegistrationRequest request = new UserRegistrationRequest(
-                "test@example.com", "Moscow", "John", "MALE", 25, List.of("MUSIC"), null
+                "test@example.com", "Moscow", "John", "MALE", 25, List.of("MUSIC"), null, true
         );
 
         when(userRepository.findByMaxId(TELEGRAM_ID)).thenReturn(Optional.of(createTestUser()));

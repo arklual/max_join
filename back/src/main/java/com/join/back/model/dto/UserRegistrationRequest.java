@@ -22,12 +22,14 @@ public record UserRegistrationRequest(
         String gender,
 
         @NotNull
-        @Min(1)
+        @Min(14)
         @Max(150)
         Integer age,
 
         List<String> interests,
 
-        Long universityId
+        Long universityId,
+
+        boolean personalDataConsent
 ) {
 }

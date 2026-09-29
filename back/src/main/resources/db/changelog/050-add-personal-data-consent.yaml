@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 050-add-personal-data-consent
+      author: join-team
+      comment: When the user agreed to the privacy policy; null means not yet (asked on next launch).
+      changes:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: personal_data_consent_at
+                  type: TIMESTAMP

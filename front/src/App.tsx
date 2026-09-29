@@ -3,6 +3,7 @@ import M3 from './theme/M3/M3';
 import SplashScreen from './pages/SplashScreen';
 import RegistrationScreen from './pages/RegistrationScreen';
 import LoginScreen from './pages/LoginScreen';
+import PrivacyScreen from './pages/PrivacyScreen';
 import NativeBridge from './components/NativeBridge';
 import MaxBackButton from './components/MaxBackButton';
 import { LikeFeedbackHost } from './components/LikeFeedback';
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/" element={<SplashScreen />} />
           <Route path="/register" element={<RegistrationScreen />} />
           <Route path="/login" element={<LoginScreen />} />
+          <Route path="/privacy" element={<PrivacyScreen />} />
           <Route element={<MainLayout />}>
             <Route path="/afisha" element={<AfishaScreen />} />
             <Route path="/likes" element={<LikesScreen />} />

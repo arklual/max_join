@@ -93,3 +93,5 @@ databaseChangeLog:
       file: db/changelog/048-add-contact-request-to-matches.yaml
   - include:
       file: db/changelog/049-add-pinned-to-chats.yaml
+  - include:
+      file: db/changelog/050-add-personal-data-consent.yaml

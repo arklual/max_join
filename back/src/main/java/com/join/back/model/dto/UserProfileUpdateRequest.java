@@ -18,7 +18,7 @@ public record UserProfileUpdateRequest(
 
         String gender,
 
-        @Min(1)
+        @Min(value = 14, message = "JOIN доступен с 14 лет")
         @Max(150)
         Integer age,
 

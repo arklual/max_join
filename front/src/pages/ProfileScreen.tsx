@@ -47,6 +47,10 @@ import SettingsBrightnessOutlined from '@mui/icons-material/SettingsBrightnessOu
 import LightModeOutlined from '@mui/icons-material/LightModeOutlined';
 import DarkModeOutlined from '@mui/icons-material/DarkModeOutlined';
 import LogoutOutlined from '@mui/icons-material/LogoutOutlined';
+import PrivacyTipOutlined from '@mui/icons-material/PrivacyTipOutlined';
+import PersonRemoveOutlined from '@mui/icons-material/PersonRemoveOutlined';
+import { PrivacyPolicyDialog } from '../components/PrivacyPolicy';
+import DeleteAccountDialog from '../components/DeleteAccountDialog';
 import { ALL_INTERESTS, INTEREST_LABELS, type InterestType } from '../types';
 import type { UserProfile } from '../types';
 import CitySelect from '../components/CitySelect';
@@ -82,6 +86,8 @@ function validateProfile(data: UserProfile): FormErrors {
 
   if (!data.age || data.age < 1 || data.age > 150) {
     errors.age = 'Введите корректный возраст';
+  } else if (data.age < 14) {
+    errors.age = 'JOIN доступен с 14 лет';
   }
 
   if (data.interests.length === 0) {
@@ -94,6 +100,8 @@ function validateProfile(data: UserProfile): FormErrors {
 export default function ProfileScreen() {
   const { preference: themePreference, setPreference: setThemePreference } = useContext(ThemeModeContext);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [policyOpen, setPolicyOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -453,7 +461,7 @@ export default function ProfileScreen() {
             label="Возраст"
             name="age"
             type="number"
-            inputProps={{ min: 1, max: 150, inputMode: 'numeric' }}
+            inputProps={{ min: 14, max: 150, inputMode: 'numeric' }}
             value={editData.age || ''}
             onChange={handleFieldChange}
             error={!!formErrors.age}
@@ -881,6 +889,30 @@ export default function ProfileScreen() {
           Выйти из аккаунта
         </Button>
       )}
+
+      <Button
+        variant="text"
+        fullWidth
+        startIcon={<PrivacyTipOutlined />}
+        onClick={() => setPolicyOpen(true)}
+        sx={{ mt: isMessengerApp() ? 2 : 0.5, borderRadius: 3, py: 1.25, textTransform: 'none', fontWeight: 600 }}
+      >
+        Политика конфиденциальности
+      </Button>
+
+      <Button
+        variant="text"
+        color="error"
+        fullWidth
+        startIcon={<PersonRemoveOutlined />}
+        onClick={() => setDeleteOpen(true)}
+        sx={{ mt: 0.5, borderRadius: 3, py: 1.25, textTransform: 'none', fontWeight: 600 }}
+      >
+        Удалить аккаунт
+      </Button>
+
+      <PrivacyPolicyDialog open={policyOpen} onClose={() => setPolicyOpen(false)} />
+      <DeleteAccountDialog open={deleteOpen} onClose={() => setDeleteOpen(false)} />
 
       <Dialog open={logoutOpen} onClose={() => setLogoutOpen(false)}>
         <DialogTitle>Выйти из аккаунта?</DialogTitle>

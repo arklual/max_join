@@ -10,4 +10,8 @@ import org.springframework.stereotype.Repository;
 public interface FriendGroupChatMessageRepository extends JpaRepository<FriendGroupChatMessage, Long> {
 
     Page<FriendGroupChatMessage> findByFriendGroupIdOrderByCreatedAtAsc(Long friendGroupId, Pageable pageable);
+
+    void deleteByFriendGroupIdIn(java.util.List<Long> friendGroupIds);
+
+    void deleteBySenderId(Long senderId);
 }

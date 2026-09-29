@@ -269,6 +269,16 @@ class MatchServiceTest {
         assertFalse(matchService.isMutualCriteriaMatch(userA, userB));
     }
 
+    @Test
+    void teenagersAndAdultsNeverMatch() {
+        User teen = createUser(1L, 17, Gender.FEMALE, null, null, null);
+        User adult = createUser(2L, 18, Gender.MALE, null, null, null);
+        User peer = createUser(3L, 15, Gender.MALE, null, null, null);
+
+        assertFalse(matchService.isMutualCriteriaMatch(teen, adult));
+        assertTrue(matchService.isMutualCriteriaMatch(teen, peer));
+    }
+
     private User createUser(Long id, Integer age, Gender gender,
                             Integer preferredAgeMin, Integer preferredAgeMax, Gender preferredGender) {
         return User.builder()

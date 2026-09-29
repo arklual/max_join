@@ -24,6 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -44,7 +46,7 @@ class AuthControllerTest {
         return new UserResponse(
                 42L, null, "x@y.com", "Moscow", "X",
                 com.join.back.model.entity.Gender.MALE, 20, java.util.List.of(),
-                null, null, null
+                null, null, null, true
         );
     }
 
@@ -54,7 +56,7 @@ class AuthControllerTest {
                 .thenReturn(new AuthResponse("the-token", anyUser()));
 
         String body = json.writeValueAsString(new RegisterRequest(
-                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of()
+                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of(), true
         ));
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
@@ -66,7 +68,7 @@ class AuthControllerTest {
         when(authService.register(any(RegisterRequest.class)))
                 .thenThrow(AuthException.emailTaken());
         String body = json.writeValueAsString(new RegisterRequest(
-                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of()
+                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of(), true
         ));
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
@@ -87,7 +89,7 @@ class AuthControllerTest {
     @Test
     void registerValidatesEmptyPassword() throws Exception {
         String body = json.writeValueAsString(new RegisterRequest(
-                "x@y.com", "", "X", 20, "MALE", "Moscow", null, List.of()
+                "x@y.com", "", "X", 20, "MALE", "Moscow", null, List.of(), true
         ));
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
@@ -97,7 +99,7 @@ class AuthControllerTest {
     @Test
     void registerShortPasswordReturnsPasswordTooShort() throws Exception {
         String body = json.writeValueAsString(new RegisterRequest(
-                "x@y.com", "short", "X", 20, "MALE", "Moscow", null, List.of()
+                "x@y.com", "short", "X", 20, "MALE", "Moscow", null, List.of(), true
         ));
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
@@ -107,7 +109,7 @@ class AuthControllerTest {
     @Test
     void registerInvalidEmailReturnsEmailInvalid() throws Exception {
         String body = json.writeValueAsString(new RegisterRequest(
-                "not-an-email", "secret123", "X", 20, "MALE", "Moscow", null, List.of()
+                "not-an-email", "secret123", "X", 20, "MALE", "Moscow", null, List.of(), true
         ));
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
@@ -115,11 +117,21 @@ class AuthControllerTest {
     }
 
     @Test
+    void registerWithoutConsentReturns400() throws Exception {
+        String body = json.writeValueAsString(new RegisterRequest(
+                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of(), false
+        ));
+        mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isBadRequest());
+        verify(authService, never()).register(any());
+    }
+
+    @Test
     void registerResponseDoesNotLeakPasswordHash() throws Exception {
         when(authService.register(any(RegisterRequest.class)))
                 .thenReturn(new AuthResponse("the-token", anyUser()));
         String body = json.writeValueAsString(new RegisterRequest(
-                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of()
+                "x@y.com", "secret123", "X", 20, "MALE", "Moscow", null, List.of(), true
         ));
         mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())

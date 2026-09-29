@@ -15,6 +15,8 @@ public record UserResponse(
         List<String> interests,
         String photo,
         Long universityId,
-        String universityName
+        String universityName,
+        /** Agreed to the privacy policy; false for accounts created before consent was asked. */
+        boolean personalDataConsent
 ) {
 }

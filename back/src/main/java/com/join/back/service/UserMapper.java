@@ -20,6 +20,7 @@ public interface UserMapper {
     @Mapping(target = "interests", source = "interests", qualifiedByName = "eventTypesToStrings")
     @Mapping(target = "universityId", source = "university.id")
     @Mapping(target = "universityName", source = "university.name")
+    @Mapping(target = "personalDataConsent", expression = "java(user.getPersonalDataConsentAt() != null)")
     UserResponse toResponse(User user);
 
     @Mapping(target = "interests", source = "interests", qualifiedByName = "eventTypesToStrings")
@@ -42,6 +43,7 @@ public interface UserMapper {
     @Mapping(target = "preferredUniversityId", ignore = true)
     @Mapping(target = "university", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "personalDataConsentAt", ignore = true)
     @Mapping(target = "gender", source = "gender", qualifiedByName = "stringToGender")
     @Mapping(target = "interests", source = "interests", qualifiedByName = "stringsToEventTypes")
     User toEntity(UserRegistrationRequest request);

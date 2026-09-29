@@ -6,33 +6,21 @@ import com.join.back.model.entity.Event;
 import com.join.back.model.entity.EventLike;
 import com.join.back.model.entity.EventType;
 import com.join.back.model.entity.Gender;
-import com.join.back.model.entity.GroupChat;
-import com.join.back.model.entity.GroupGathering;
 import com.join.back.model.entity.Match;
-import com.join.back.model.entity.SupportTicket;
 import com.join.back.model.entity.University;
 import com.join.back.model.entity.User;
-import com.join.back.repository.ChatIceBreakerRepository;
 import com.join.back.repository.ChatMessageRepository;
-import com.join.back.repository.GroupChatIceBreakerRepository;
 import com.join.back.repository.ChatRepository;
 import com.join.back.repository.EventLikeRepository;
 import com.join.back.repository.EventRepository;
-import com.join.back.repository.GroupChatMessageRepository;
-import com.join.back.repository.GroupChatRepository;
-import com.join.back.repository.GroupGatheringRepository;
-import com.join.back.repository.GroupMemberRepository;
 import com.join.back.repository.MatchRepository;
-import com.join.back.repository.NotificationRepository;
-import com.join.back.repository.SupportMessageRepository;
-import com.join.back.repository.SupportTicketRepository;
 import com.join.back.repository.UniversityRepository;
 import com.join.back.repository.UserRepository;
+import com.join.back.service.AccountDeletionService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,20 +45,12 @@ public class AdminController {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final AccountDeletionService accountDeletionService;
     private final UniversityRepository universityRepository;
     private final EventLikeRepository eventLikeRepository;
     private final MatchRepository matchRepository;
     private final ChatRepository chatRepository;
     private final ChatMessageRepository chatMessageRepository;
-    private final ChatIceBreakerRepository chatIceBreakerRepository;
-    private final NotificationRepository notificationRepository;
-    private final SupportMessageRepository supportMessageRepository;
-    private final SupportTicketRepository supportTicketRepository;
-    private final GroupGatheringRepository groupGatheringRepository;
-    private final GroupMemberRepository groupMemberRepository;
-    private final GroupChatRepository groupChatRepository;
-    private final GroupChatMessageRepository groupChatMessageRepository;
-    private final GroupChatIceBreakerRepository groupChatIceBreakerRepository;
 
     @GetMapping("/events")
     public List<AdminEventResponse> getEvents() {
@@ -127,58 +107,8 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{id}")
-    @Transactional
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-        User user = findUser(id);
-
-        // 1. Delete group data for groups created by this user
-        List<GroupGathering> createdGroups = groupGatheringRepository.findByCreatorId(id);
-        if (!createdGroups.isEmpty()) {
-            List<Long> groupIds = createdGroups.stream().map(GroupGathering::getId).toList();
-            List<GroupChat> groupChats = groupChatRepository.findByGroupIdIn(groupIds);
-            if (!groupChats.isEmpty()) {
-                List<Long> groupChatIds = groupChats.stream().map(GroupChat::getId).toList();
-                groupChatMessageRepository.deleteByGroupChatIdIn(groupChatIds);
-                groupChatIceBreakerRepository.deleteByGroupChatIdIn(groupChatIds);
-            }
-            groupChatRepository.deleteByGroupIdIn(groupIds);
-            groupMemberRepository.deleteByGroupIdIn(groupIds);
-            groupGatheringRepository.deleteAll(createdGroups);
-        }
-
-        // 2. Delete group messages sent by user and group memberships
-        groupChatMessageRepository.deleteBySenderId(id);
-        groupMemberRepository.deleteByUserId(id);
-
-        // 3. Delete chats and related data (messages, icebreakers)
-        List<Chat> userChats = chatRepository.findByUserId(id);
-        if (!userChats.isEmpty()) {
-            List<Long> chatIds = userChats.stream().map(Chat::getId).toList();
-            chatMessageRepository.deleteByChatIdIn(chatIds);
-            chatIceBreakerRepository.deleteByChatIdIn(chatIds);
-            chatRepository.deleteAll(userChats);
-            // Chats reference matches; flush before the bulk match delete below.
-            chatRepository.flush();
-        }
-
-        // 4. Delete matches
-        matchRepository.deleteByUserId(id);
-
-        // 5. Delete event likes
-        eventLikeRepository.deleteByUserId(id);
-
-        // 6. Delete notifications
-        notificationRepository.deleteByUserId(id);
-
-        // 7. Delete support ticket and messages
-        supportTicketRepository.findByUserId(id).ifPresent(ticket -> {
-            supportMessageRepository.deleteByTicketId(ticket.getId());
-            supportTicketRepository.delete(ticket);
-        });
-
-        // 8. Delete user (user_interests cleaned up by JPA)
-        userRepository.delete(user);
-
+        accountDeletionService.deleteAccount(id);
         return ResponseEntity.noContent().build();
     }
 

@@ -61,7 +61,7 @@ class AuthServiceTest {
     void registerHappy() {
         RegisterRequest req = new RegisterRequest(
                 "ivan@example.com", "secret123",
-                "Ivan", 22, "MALE", "Moscow", null, List.of()
+                "Ivan", 22, "MALE", "Moscow", null, List.of(), true
         );
         when(userRepository.existsByEmail("ivan@example.com")).thenReturn(false);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
@@ -72,7 +72,7 @@ class AuthServiceTest {
         when(userMapper.toResponse(any(User.class))).thenReturn(new UserResponse(
                 42L, null, "ivan@example.com", "Moscow", "Ivan",
                 com.join.back.model.entity.Gender.MALE, 22, List.of(),
-                null, null, null
+                null, null, null, true
         ));
 
         AuthResponse resp = service.register(req);
@@ -85,6 +85,7 @@ class AuthServiceTest {
         assertEquals("ivan@example.com", saved.getEmail());
         assertNotNull(saved.getPasswordHash());
         assertNull(saved.getMaxId());
+        assertNotNull(saved.getPersonalDataConsentAt());
     }
 
     @Test
@@ -92,7 +93,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("dup@example.com")).thenReturn(true);
         RegisterRequest req = new RegisterRequest(
                 "dup@example.com", "secret123",
-                "Anna", 20, "FEMALE", "Spb", null, List.of()
+                "Anna", 20, "FEMALE", "Spb", null, List.of(), true
         );
         AuthException ex = assertThrows(AuthException.class, () -> service.register(req));
         assertEquals("EMAIL_TAKEN", ex.getCode());
@@ -110,7 +111,7 @@ class AuthServiceTest {
         when(userMapper.toResponse(stored)).thenReturn(new UserResponse(
                 7L, null, "a@b.com", "X", "A",
                 Gender.MALE, 20, java.util.List.of(),
-                null, null, null
+                null, null, null, true
         ));
 
         AuthResponse resp = service.login(new LoginRequest("a@b.com", "secret123"));
@@ -192,7 +193,7 @@ class AuthServiceTest {
         when(userRepository.findByMaxId(99L)).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         when(userMapper.toResponse(any(User.class))).thenReturn(new UserResponse(
-                5L, 99L, "a@b.com", "X", "A", Gender.MALE, 20, List.of(), null, null, null
+                5L, 99L, "a@b.com", "X", "A", Gender.MALE, 20, List.of(), null, null, null, true
         ));
 
         AuthResponse resp = service.linkMax(99L, new LinkMaxRequest("a@b.com", "secret123"));
@@ -209,7 +210,7 @@ class AuthServiceTest {
                 .build();
         when(userRepository.findByEmail("a@b.com")).thenReturn(Optional.of(account));
         when(userMapper.toResponse(any(User.class))).thenReturn(new UserResponse(
-                5L, 99L, "a@b.com", "X", "A", Gender.MALE, 20, List.of(), null, null, null
+                5L, 99L, "a@b.com", "X", "A", Gender.MALE, 20, List.of(), null, null, null, true
         ));
 
         AuthResponse resp = service.linkMax(99L, new LinkMaxRequest("a@b.com", "secret123"));

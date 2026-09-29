@@ -26,6 +26,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.math.BigDecimal;
@@ -38,7 +41,10 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -192,6 +198,7 @@ class GroupServiceTest {
         when(groupMemberRepository.save(any())).thenReturn(GroupMember.builder().build());
         when(groupMemberRepository.countByGroupIdAndStatus(GROUP_ID, GroupMemberStatus.ACTIVE)).thenReturn(2L);
         when(groupChatRepository.findByGroupId(GROUP_ID)).thenReturn(Optional.of(groupChat));
+        when(userRepository.findById(newUserId)).thenReturn(Optional.of(User.builder().id(newUserId).age(20).build()));
 
         JoinGroupResponse response = groupService.joinGroup(newUserId, GROUP_ID);
 
@@ -221,11 +228,46 @@ class GroupServiceTest {
         when(groupMemberRepository.save(any())).thenReturn(GroupMember.builder().build());
         when(groupMemberRepository.countByGroupIdAndStatus(GROUP_ID, GroupMemberStatus.ACTIVE)).thenReturn(2L);
         when(groupChatRepository.findByGroupId(GROUP_ID)).thenReturn(Optional.of(groupChat));
+        when(userRepository.findById(newUserId)).thenReturn(Optional.of(User.builder().id(newUserId).age(20).build()));
         when(groupGatheringRepository.save(any())).thenReturn(group);
 
         groupService.joinGroup(newUserId, GROUP_ID);
 
         assertEquals(GroupStatus.FULL, group.getStatus());
+    }
+
+    @Test
+    void teenagerCannotJoinAdultCompany() {
+        Long teenId = 2L;
+        when(groupGatheringRepository.findByIdWithLock(GROUP_ID)).thenReturn(Optional.of(openGroup));
+        when(groupMemberRepository.existsByGroupIdAndUserIdAndStatus(GROUP_ID, teenId, GroupMemberStatus.ACTIVE))
+                .thenReturn(false);
+        when(groupGatheringRepository.existsActiveGroupMemberByEventIdAndUserId(EVENT_ID, teenId))
+                .thenReturn(false);
+        when(userRepository.findById(teenId)).thenReturn(Optional.of(User.builder().id(teenId).age(16).build()));
+        when(groupMemberRepository.findByGroupIdAndStatus(GROUP_ID, GroupMemberStatus.ACTIVE))
+                .thenReturn(List.of(creatorMember));
+        when(userRepository.findAllById(List.of(USER_ID)))
+                .thenReturn(List.of(User.builder().id(USER_ID).age(25).build()));
+
+        assertThrows(UserActionException.class, () -> groupService.joinGroup(teenId, GROUP_ID));
+        verify(groupMemberRepository, never()).save(any());
+    }
+
+    @Test
+    void teenagerDoesNotSeeAdultCompanies() {
+        Long teenId = 2L;
+        when(eventRepository.findById(EVENT_ID)).thenReturn(Optional.of(futureEvent));
+        when(userRepository.findById(teenId)).thenReturn(Optional.of(User.builder().id(teenId).age(15).build()));
+        when(groupGatheringRepository.findByEventIdAndStatus(eq(EVENT_ID), eq(GroupStatus.OPEN), any()))
+                .thenReturn(new PageImpl<>(List.of(openGroup)));
+        when(userRepository.findAllById(List.of(USER_ID)))
+                .thenReturn(List.of(User.builder().id(USER_ID).age(25).build()));
+
+        Page<GroupResponse> page = groupService.getGroupsForEvent(EVENT_ID, teenId, Pageable.unpaged());
+
+        assertTrue(page.getContent().isEmpty());
+        assertEquals(0, page.getTotalElements());
     }
 
     @Test

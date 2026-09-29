@@ -1,5 +1,6 @@
 package com.join.back.model.dto.auth;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -13,10 +14,11 @@ public record RegisterRequest(
         @NotBlank @Email String email,
         @NotBlank @Size(min = 8) String password,
         @NotBlank String firstName,
-        @NotNull @Min(14) @Max(150) Integer age,
+        @NotNull @Min(value = 14, message = "JOIN доступен с 14 лет") @Max(150) Integer age,
         @NotNull String gender,
         @NotBlank String city,
         Long universityId,
-        List<String> interests
+        List<String> interests,
+        @AssertTrue(message = "Нужно согласие на обработку персональных данных") boolean personalDataConsent
 ) {
 }
