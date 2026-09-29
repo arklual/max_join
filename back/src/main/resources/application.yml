@@ -99,6 +99,16 @@ springdoc:
     - /api/admin/**
     - /api/max/webhook
     - /api/telegram/webhook
+  # Error responses are documented per operation by OpenApiConfig, not copied from the exception handler.
+  override-with-generic-response: false
+  default-produces-media-type: application/json
+  swagger-ui:
+    doc-expansion: none
+    operations-sorter: alpha
+    filter: true
+    persist-authorization: true
+    display-request-duration: true
+    default-models-expand-depth: 0
 
 ---
 spring:

@@ -10,7 +10,11 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
+@Tag(name = ApiDocs.PROFILE)
 @RestController
 @RequestMapping("/api/users/me/search-criteria")
 public class SearchCriteriaController extends BaseAuthController {
@@ -22,6 +26,8 @@ public class SearchCriteriaController extends BaseAuthController {
         this.searchCriteriaService = searchCriteriaService;
     }
 
+    @Operation(summary = "Изменить настройки поиска компании",
+            description = "Учитываются при следующих совпадениях, причём с обеих сторон.")
     @PutMapping
     public ResponseEntity<Void> updateSearchCriteria(@RequestBody SearchCriteriaRequest request) {
         Long userId = requireCurrentUserId();
@@ -29,6 +35,8 @@ public class SearchCriteriaController extends BaseAuthController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Настройки поиска компании",
+            description = "Пол, возраст и вуз напарника; пустое поле — без ограничения.")
     @GetMapping
     public ResponseEntity<SearchCriteriaResponse> getSearchCriteria() {
         Long userId = requireCurrentUserId();

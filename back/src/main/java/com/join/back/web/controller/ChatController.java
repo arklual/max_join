@@ -26,7 +26,12 @@ import java.util.List;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
 import org.springdoc.core.annotations.ParameterObject;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
+import com.join.back.config.ApiError;
 
+@Tag(name = ApiDocs.CHATS)
 @RestController
 @RequestMapping("/api/chats")
 public class ChatController extends BaseAuthController {
@@ -44,12 +49,17 @@ public class ChatController extends BaseAuthController {
     }
 
     // GET /api/chats/{id}/outing — "сходили вместе?" state of the pair
+    @Operation(summary = "«Сходили вместе?»: состояние",
+            description = "Можно ли уже ответить и что ответили оба.")
     @GetMapping("/{id}/outing")
     public ResponseEntity<OutingStateResponse> getOuting(@PathVariable Long id) {
         return ResponseEntity.ok(outingFeedbackService.getState(id, requireCurrentUserId()));
     }
 
     // POST /api/chats/{id}/outing/went {"went": true|false}
+    @Operation(summary = "Ответить «Сходили вместе?»",
+            description = "После события; то же, что кнопки бота «Да, сходили» / «Не получилось».")
+    @ApiError(code = "409", description = "Событие ещё не прошло")
     @PostMapping("/{id}/outing/went")
     public ResponseEntity<OutingStateResponse> answerWent(@PathVariable Long id, @Valid @RequestBody WentRequest request) {
         return ResponseEntity.ok(outingFeedbackService.answer(id, requireCurrentUserId(), request.went()));
@@ -58,12 +68,16 @@ public class ChatController extends BaseAuthController {
     public record WentRequest(@jakarta.validation.constraints.NotNull Boolean went) {
     }
 
+    @Operation(summary = "Мои чаты",
+            description = "Закреплённые — сверху, остальные — по последнему сообщению.")
     @GetMapping
     public ResponseEntity<List<ChatResponse>> getChats() {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(chatService.getChats(userId));
     }
 
+    @Operation(summary = "Сообщения чата",
+            description = "Новые сообщения также приходят через WebSocket `/ws`.")
     @GetMapping("/{id}/messages")
     public ResponseEntity<Page<ChatMessageResponse>> getMessages(
             @PathVariable Long id,
@@ -73,6 +87,9 @@ public class ChatController extends BaseAuthController {
         return ResponseEntity.ok(chatService.getMessages(id, userId, pageable));
     }
 
+    @Operation(summary = "Отправить сообщение",
+            description = "Собеседник получит его через WebSocket и уведомление бота.")
+    @ApiError(code = "409", description = "Один из собеседников в чёрном списке у другого")
     @PostMapping("/{id}/messages")
     public ResponseEntity<ChatMessageResponse> sendMessage(
             @PathVariable Long id,
@@ -82,12 +99,16 @@ public class ChatController extends BaseAuthController {
         return ResponseEntity.ok(chatService.sendMessage(id, userId, request.text()));
     }
 
+    @Operation(summary = "Подсказки для первой фразы",
+            description = "Генерирует LLM по интересам и событию — без имён и других данных профиля; без ключа LLM "
+                    + "— шаблоны. Результат кэшируется.")
     @GetMapping("/{id}/icebreakers")
     public ResponseEntity<IceBreakerResponse> getIceBreakers(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(iceBreakerService.getIceBreakers(id, userId));
     }
 
+    @Operation(summary = "Отметить сообщения прочитанными")
     @PutMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
@@ -96,6 +117,8 @@ public class ChatController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Закрепить чат",
+            description = "Только в своём списке чатов.")
     @PutMapping("/{id}/pin")
     public ResponseEntity<Void> pinChat(@PathVariable Long id) {
         chatService.setPinned(id, requireCurrentUserId(), true);
@@ -103,6 +126,7 @@ public class ChatController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Открепить чат")
     @DeleteMapping("/{id}/pin")
     public ResponseEntity<Void> unpinChat(@PathVariable Long id) {
         chatService.setPinned(id, requireCurrentUserId(), false);
@@ -110,6 +134,8 @@ public class ChatController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Удалить чат у себя",
+            description = "Чат скрывается только у текущего пользователя и вернётся, если собеседник напишет.")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteChat(@PathVariable Long id) {
         Long userId = requireCurrentUserId();

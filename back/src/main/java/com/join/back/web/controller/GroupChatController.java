@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springdoc.core.annotations.ParameterObject;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
+@Tag(name = ApiDocs.GROUPS)
 @RestController
 @RequestMapping("/api/group-chats")
 public class GroupChatController extends BaseAuthController {
@@ -33,6 +37,7 @@ public class GroupChatController extends BaseAuthController {
         this.iceBreakerService = iceBreakerService;
     }
 
+    @Operation(summary = "Сообщения чата компании")
     @GetMapping("/{groupChatId}/messages")
     public ResponseEntity<Page<GroupChatMessageResponse>> getMessages(
             @PathVariable Long groupChatId,
@@ -42,6 +47,8 @@ public class GroupChatController extends BaseAuthController {
         return ResponseEntity.ok(groupService.getGroupMessages(groupChatId, userId, pageable));
     }
 
+    @Operation(summary = "Подсказки для чата компании",
+            description = "Как в личном чате: LLM по интересам участников и событию, без персональных данных.")
     @GetMapping("/{groupChatId}/icebreakers")
     public ResponseEntity<IceBreakerResponse> getIceBreakers(@PathVariable Long groupChatId) {
         Long userId = requireCurrentUserId();
@@ -49,6 +56,7 @@ public class GroupChatController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Написать в чат компании")
     @PostMapping("/{groupChatId}/messages")
     public ResponseEntity<GroupChatMessageResponse> sendMessage(
             @PathVariable Long groupChatId,

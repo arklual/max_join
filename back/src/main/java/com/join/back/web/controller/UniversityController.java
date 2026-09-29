@@ -13,8 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
 @SecurityRequirements
+@Tag(name = ApiDocs.DICTIONARIES)
 @RestController
 @RequestMapping("/api/universities")
 @RequiredArgsConstructor
@@ -22,6 +26,8 @@ public class UniversityController {
 
     private final UniversityRepository universityRepository;
 
+    @Operation(summary = "Вузы",
+            description = "Справочник вузов России; `city` — только вузы города.")
     @GetMapping
     public ResponseEntity<List<UniversityResponse>> getUniversities(
             @RequestParam(required = false) String city
@@ -40,6 +46,7 @@ public class UniversityController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Вуз")
     @GetMapping("/{id}")
     public ResponseEntity<UniversityResponse> getUniversity(@PathVariable Long id) {
         return universityRepository.findById(id)

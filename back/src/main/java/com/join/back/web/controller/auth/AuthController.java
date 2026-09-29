@@ -21,10 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 import com.join.back.service.MaxLinkService;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.http.HttpStatus;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
+import com.join.back.config.ApiError;
 
 @Slf4j
+@Tag(name = ApiDocs.AUTH)
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController extends BaseAuthController {
@@ -42,17 +46,21 @@ public class AuthController extends BaseAuthController {
     }
 
     @SecurityRequirements
-    @ApiResponse(responseCode = "200", description = "Токен и профиль")
-    @ApiResponse(responseCode = "409", description = "Email уже используется (code: EMAIL_TAKEN)")
+    @ApiError(code = "409", description = "Email уже используется (code: EMAIL_TAKEN)")
+    @Operation(summary = "Регистрация по email",
+            description = "Аккаунт с паролем — для сайта и Android-приложения. Возраст — от 14 лет, "
+                    + "`personalDataConsent` должен быть `true`. Возвращает токен и профиль.")
     @PostMapping("/register")
     public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
         return authService.register(request);
     }
 
     @SecurityRequirements
-    @ApiResponse(responseCode = "200", description = "Токен и профиль")
-    @ApiResponse(responseCode = "401", description = "Неверный email или пароль (code: BAD_CREDENTIALS)")
-    @ApiResponse(responseCode = "429", description = "Слишком много неудачных попыток, вход заблокирован на 15 минут")
+    @ApiError(code = "401", description = "Неверный email или пароль (code: BAD_CREDENTIALS)")
+    @ApiError(code = "429", description = "Слишком много неудачных попыток, вход заблокирован на 15 минут")
+    @Operation(summary = "Вход по email и паролю",
+            description = "Возвращает токен для заголовка `Authorization: Bearer <token>`. После 10 неудачных "
+                    + "попыток вход для email или адреса блокируется на 15 минут.")
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
         String ip = clientIp(http);
@@ -79,6 +87,10 @@ public class AuthController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Добавить email и пароль к аккаунту",
+            description = "Пользователь MAX задаёт email и пароль, чтобы входить в тот же аккаунт на сайте и в "
+                    + "Android-приложении.")
+    @ApiError(code = "409", description = "Email уже используется или уже привязан")
     @PostMapping("/link-email")
     public ResponseEntity<Void> linkEmail(@Valid @RequestBody LinkEmailRequest request) {
         authService.linkEmail(requireCurrentUserId(), request);
@@ -90,6 +102,11 @@ public class AuthController extends BaseAuthController {
      * lets the user sign in with the credentials of the account they already
      * created in the Android app instead of registering a duplicate.
      */
+    @Operation(summary = "Войти в существующий аккаунт из MAX",
+            description = "Если пользователь MAX ещё не связан с JOIN, но уже зарегистрирован по email, — "
+                    + "привязывает MAX к этому аккаунту вместо создания дубля.")
+    @ApiError(code = "401", description = "Неверный email или пароль")
+    @ApiError(code = "409", description = "Аккаунт уже привязан к другому аккаунту MAX или Telegram")
     @PostMapping("/link-max")
     public AuthResponse linkMax(@Valid @RequestBody LinkMaxRequest request) {
         return authService.linkMax(getCurrentMaxId(), request);
@@ -99,12 +116,20 @@ public class AuthController extends BaseAuthController {
      * One-tap MAX linking for a signed-in user: returns a one-time
      * {@code max.ru/<bot>?start=link_<token>} deep link (valid 15 minutes).
      */
+    @Operation(summary = "Ссылка для привязки MAX",
+            description = "Одноразовая ссылка `max.ru/<бот>?start=link_<token>` на 15 минут: после «Начать» в боте "
+                    + "MAX привязывается к текущему аккаунту.")
     @PostMapping("/max-link")
     public java.util.Map<String, String> createMaxLink() {
         return java.util.Map.of("url", maxLinkService.createLinkUrl(requireCurrentUserId()));
     }
 
     /** Same as link-max, for whichever messenger mini app (MAX or Telegram) the request comes from. */
+    @Operation(summary = "Войти в существующий аккаунт из мессенджера",
+            description = "То же, что `link-max`, для мини-приложения MAX или Telegram — мессенджер определяется по "
+                    + "заголовку запроса.")
+    @ApiError(code = "401", description = "Неверный email или пароль")
+    @ApiError(code = "409", description = "Аккаунт уже привязан к другому аккаунту MAX или Telegram")
     @PostMapping("/link-messenger")
     public AuthResponse linkMessenger(@Valid @RequestBody LinkMaxRequest request) {
         var identity = getCurrentMessengerIdentity();

@@ -25,6 +25,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import com.join.back.security.MessengerAuthenticationToken;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
+import com.join.back.config.ApiError;
 
 @RestController
 @RequestMapping("/api/users")
@@ -41,6 +45,11 @@ public class UserController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
+    @Tag(name = ApiDocs.AUTH)
+    @Operation(summary = "Регистрация в мини-приложении",
+            description = "Пользователь MAX определяется по заголовку `X-Max-Init-Data`, пароль не нужен. Возраст — "
+                    + "от 14 лет, `personalDataConsent=true`. Фото — необязательное поле `photo`.")
+    @ApiError(code = "400", description = "Младше 14 лет или нет согласия на обработку данных")
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserResponse> register(
             @RequestParam(value = "email", required = false) String email,
@@ -63,6 +72,10 @@ public class UserController extends BaseAuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Текущий пользователь",
+            description = "Кратко: город, возраст, интересы, вуз и отметка согласия на обработку данных. `404` — "
+                    + "пользователь MAX ещё не зарегистрирован в JOIN.")
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser() {
         Long userId = requireCurrentUserId();
@@ -89,6 +102,9 @@ public class UserController extends BaseAuthController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Профиль другого пользователя",
+            description = "Подростки (14–17 лет) и взрослые не видят профили друг друга — в этом случае `404`.")
     @GetMapping("/{id}/profile")
     public ResponseEntity<UserProfileResponse> getProfileById(@PathVariable("id") Long userId) {
         UserProfileResponse response = userService.getProfileById(requireCurrentUserId(), userId);
@@ -97,6 +113,10 @@ public class UserController extends BaseAuthController {
 
     /** Consent to the privacy policy for accounts created before it was asked at sign-up. */
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Принять политику конфиденциальности",
+            description = "Для аккаунтов, созданных до того, как согласие стало обязательным при регистрации. "
+                    + "Повторный вызов ничего не меняет.")
     @PostMapping("/me/consent")
     public ResponseEntity<Void> acceptPersonalDataConsent() {
         userService.acceptPersonalDataConsent(requireCurrentUserId());
@@ -105,12 +125,19 @@ public class UserController extends BaseAuthController {
 
     /** Deletes the account and everything tied to it — withdraws consent to data processing. */
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Удалить аккаунт",
+            description = "Удаляет профиль, сохранённые события, совпадения, личные чаты и созданные компании; из "
+                    + "групп друзей пользователь выходит. Так же отзывается согласие на обработку данных.")
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount() {
         accountDeletionService.deleteAccount(requireCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Мой профиль",
+            description = "Полный профиль: фото, «о себе», статус, канал, привязан ли пароль.")
     @GetMapping("/me/profile")
     public ResponseEntity<UserProfileResponse> getProfile() {
         Long userId = requireCurrentUserId();
@@ -118,6 +145,9 @@ public class UserController extends BaseAuthController {
         return ResponseEntity.ok(response);
     }
 
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Изменить профиль",
+            description = "Меняются только переданные поля. Возраст — от 14 лет.")
     @PutMapping("/me/profile")
     public ResponseEntity<UserProfileResponse> updateProfile(@Valid @RequestBody UserProfileUpdateRequest request) {
         Long userId = requireCurrentUserId();
@@ -125,7 +155,11 @@ public class UserController extends BaseAuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/me/photo")
+    @Tag(name = ApiDocs.PROFILE)
+    @Operation(summary = "Загрузить фото профиля",
+            description = "Файл в поле `photo`, до 10 МБ.")
+    @ApiError(code = "413", description = "Файл больше 10 МБ")
+    @PostMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserProfileResponse> uploadPhoto(@RequestParam("photo") MultipartFile file) {
         Long userId = requireCurrentUserId();
         UserProfileResponse response = userService.uploadPhoto(userId, file);

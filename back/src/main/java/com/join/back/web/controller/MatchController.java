@@ -11,11 +11,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
+import com.join.back.config.ApiError;
 
 /**
  * Companions found for events. A match is not a chat yet: POST /request asks "пойдём вместе?",
  * the other side answers with /accept (the chat opens) or /decline.
  */
+@Tag(name = ApiDocs.MATCHES)
 @RestController
 @RequestMapping("/api/matches")
 public class MatchController extends BaseAuthController {
@@ -28,21 +33,34 @@ public class MatchController extends BaseAuthController {
     }
 
     // GET /api/matches — found companions and requests that are not a chat yet
+    @Operation(summary = "Найденные напарники",
+            description = "Совпадения, по которым ещё нет чата: `NEW` — никто не позвал, `REQUESTED` — приглашение "
+                    + "отправлено (`requestedByMe` — кем).")
     @GetMapping
     public ResponseEntity<List<MatchResponse>> getMatches() {
         return ResponseEntity.ok(contactRequestService.getPending(requireCurrentUserId()));
     }
 
+    @Operation(summary = "Позвать пойти вместе",
+            description = "Второй получит приглашение в приложении и сообщение бота с кнопками «Пойдём» / «Не в "
+                    + "этот раз». Чата ещё нет.")
+    @ApiError(code = "409", description = "Второй уже ответил на приглашение")
     @PostMapping("/{id}/request")
     public ResponseEntity<MatchResponse> request(@PathVariable Long id) {
         return ResponseEntity.ok(contactRequestService.request(id, requireCurrentUserId()));
     }
 
+    @Operation(summary = "Ответить «Пойдём»",
+            description = "Открывает чат — его id в `chatId`; пригласившему приходит сообщение бота.")
+    @ApiError(code = "409", description = "Приглашения от этого человека нет")
     @PostMapping("/{id}/accept")
     public ResponseEntity<MatchResponse> accept(@PathVariable Long id) {
         return ResponseEntity.ok(contactRequestService.accept(id, requireCurrentUserId()));
     }
 
+    @Operation(summary = "Ответить «Не в этот раз»",
+            description = "Отказ не сообщается второму, чат не открывается.")
+    @ApiError(code = "409", description = "Чат уже открыт")
     @PostMapping("/{id}/decline")
     public ResponseEntity<MatchResponse> decline(@PathVariable Long id) {
         return ResponseEntity.ok(contactRequestService.decline(id, requireCurrentUserId()));

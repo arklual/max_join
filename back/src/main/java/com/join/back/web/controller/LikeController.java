@@ -14,7 +14,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springdoc.core.annotations.ParameterObject;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
+import com.join.back.config.ApiError;
 
+@Tag(name = ApiDocs.LIKES)
 @RestController
 @RequestMapping("/api/events")
 public class LikeController extends BaseAuthController {
@@ -26,12 +31,18 @@ public class LikeController extends BaseAuthController {
         this.likeService = likeService;
     }
 
+    @Operation(summary = "Сохранить событие",
+            description = "Если событие уже сохранил подходящий человек, сразу создаётся совпадение: оно вернётся в "
+                    + "`matches`, обоим придёт уведомление и сообщение бота. Повторный вызов ничего не меняет.")
+    @ApiError(code = "409", description = "Лимит: не больше 10 лайков в сутки")
     @PostMapping("/{id}/like")
     public ResponseEntity<LikeResultResponse> likeEvent(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(likeService.like(userId, id));
     }
 
+    @Operation(summary = "Убрать из сохранённых",
+            description = "Совпадения и чаты по этому событию удаляются.")
     @DeleteMapping("/{id}/like")
     public ResponseEntity<Void> unlikeEvent(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
@@ -39,6 +50,7 @@ public class LikeController extends BaseAuthController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Мои сохранённые события")
     @GetMapping("/liked")
     public ResponseEntity<Page<EventCardResponse>> getLikedEvents(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();

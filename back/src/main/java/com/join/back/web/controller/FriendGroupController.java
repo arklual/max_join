@@ -21,7 +21,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springdoc.core.annotations.ParameterObject;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
+import com.join.back.config.ApiError;
 
+@Tag(name = ApiDocs.FRIEND_GROUPS)
 @RestController
 @RequestMapping("/api/friend-groups")
 public class FriendGroupController extends BaseAuthController {
@@ -34,6 +39,8 @@ public class FriendGroupController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Создать группу друзей",
+            description = "В ответе код приглашения: по нему, ссылке или QR-коду вступают друзья.")
     @PostMapping
     public ResponseEntity<FriendGroupResponse> create(@Valid @RequestBody CreateFriendGroupRequest request) {
         Long userId = requireCurrentUserId();
@@ -41,18 +48,25 @@ public class FriendGroupController extends BaseAuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @Operation(summary = "Мои группы друзей")
     @GetMapping
     public ResponseEntity<Page<FriendGroupResponse>> getMyGroups(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(friendGroupService.getMyGroups(userId, pageable));
     }
 
+    @Operation(summary = "Группа друзей",
+            description = "Участники и код приглашения.")
     @GetMapping("/{id}")
     public ResponseEntity<FriendGroupResponse> getById(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(friendGroupService.getById(id, userId));
     }
 
+    @Operation(summary = "Вступить по коду приглашения",
+            description = "Работает и там, где нет сканера QR-кода, например в веб-версии MAX.")
+    @ApiError(code = "404", description = "Нет группы с таким кодом")
+    @ApiError(code = "409", description = "В группе больше нет мест или пользователь уже в ней")
     @PostMapping("/join")
     public ResponseEntity<JoinFriendGroupResponse> join(@Valid @RequestBody JoinFriendGroupRequest request) {
         Long userId = requireCurrentUserId();
@@ -60,6 +74,9 @@ public class FriendGroupController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Выйти из группы друзей",
+            description = "Если выходит создатель, роль переходит следующему участнику; группа без участников "
+                    + "архивируется.")
     @DeleteMapping("/{id}/leave")
     public ResponseEntity<Void> leave(@PathVariable Long id) {
         Long userId = requireCurrentUserId();
@@ -67,6 +84,8 @@ public class FriendGroupController extends BaseAuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Общие события группы",
+            description = "Предстоящие события, которые сохранили все участники.")
     @GetMapping("/{id}/common-events")
     public ResponseEntity<Page<EventCardResponse>> getCommonEvents(@PathVariable Long id, @ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();

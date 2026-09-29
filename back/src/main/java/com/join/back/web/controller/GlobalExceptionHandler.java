@@ -1,6 +1,7 @@
 package com.join.back.web.controller;
 
 import jakarta.persistence.EntityNotFoundException;
+import com.join.back.model.dto.ErrorResponse;
 import com.join.back.service.UserActionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,74 +11,65 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.Map;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ResponseStatus(HttpStatus.NOT_FOUND)
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleEntityNotFound(EntityNotFoundException exception) {
+    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", exception.getMessage()));
+                .body(ErrorResponse.of(exception.getMessage()));
     }
 
-    @ResponseStatus(HttpStatus.CONFLICT)
     @ExceptionHandler(UserActionException.class)
-    public ResponseEntity<Map<String, String>> handleUserAction(UserActionException exception) {
+    public ResponseEntity<ErrorResponse> handleUserAction(UserActionException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", exception.getMessage(), "message", exception.getMessage()));
+                .body(new ErrorResponse(exception.getMessage(), exception.getMessage(), null));
     }
 
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException exception) {
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException exception) {
         String message = exception.getMessage() == null ? "" : exception.getMessage();
         if (message.startsWith("User is not authenticated")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", message, "code", "UNAUTHENTICATED"));
+                    .body(ErrorResponse.withCode(message, "UNAUTHENTICATED"));
         }
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", message));
+                .body(ErrorResponse.of(message));
     }
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException exception) {
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", exception.getMessage()));
+                .body(ErrorResponse.of(exception.getMessage()));
     }
 
-    @ResponseStatus(HttpStatus.FORBIDDEN)
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException exception) {
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("error", exception.getMessage()));
+                .body(ErrorResponse.of(exception.getMessage()));
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<Map<String, String>> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception) {
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException exception) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .body(Map.of("error", "Photo is too large. Please upload an image up to 10 MB."));
+                .body(ErrorResponse.of("Photo is too large. Please upload an image up to 10 MB."));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "Operation violates database constraints."));
+                .body(ErrorResponse.of("Operation violates database constraints."));
     }
 
     @ExceptionHandler(com.join.back.security.AuthException.class)
-    public ResponseEntity<Map<String, String>> handleAuth(com.join.back.security.AuthException exception) {
+    public ResponseEntity<ErrorResponse> handleAuth(com.join.back.security.AuthException exception) {
         return ResponseEntity.status(exception.getStatus())
-                .body(Map.of(
-                        "error", exception.getMessage(),
-                        "code", exception.getCode()
-                ));
+                .body(ErrorResponse.withCode(exception.getMessage(), exception.getCode()));
     }
 
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(
+    public ResponseEntity<ErrorResponse> handleValidation(
             org.springframework.web.bind.MethodArgumentNotValidException exception) {
         org.springframework.validation.FieldError fieldError = exception.getBindingResult()
                 .getFieldErrors().stream().findFirst().orElse(null);
@@ -98,6 +90,6 @@ public class GlobalExceptionHandler {
             }
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", message, "code", code));
+                .body(ErrorResponse.withCode(message, code));
     }
 }

@@ -17,7 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springdoc.core.annotations.ParameterObject;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
+@Tag(name = ApiDocs.FRIEND_GROUPS)
 @RestController
 @RequestMapping("/api/friend-groups/{groupId}/messages")
 public class FriendGroupChatController extends BaseAuthController {
@@ -29,6 +33,7 @@ public class FriendGroupChatController extends BaseAuthController {
         this.chatService = chatService;
     }
 
+    @Operation(summary = "Сообщения группы друзей")
     @GetMapping
     public ResponseEntity<Page<FriendGroupChatMessageResponse>> getMessages(@PathVariable Long groupId,
                                                                             @ParameterObject Pageable pageable) {
@@ -37,6 +42,7 @@ public class FriendGroupChatController extends BaseAuthController {
     }
 
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Написать в группу друзей")
     @PostMapping
     public ResponseEntity<FriendGroupChatMessageResponse> send(@PathVariable Long groupId,
                                                                @Valid @RequestBody SendFriendGroupMessageRequest request) {

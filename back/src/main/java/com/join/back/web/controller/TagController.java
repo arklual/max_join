@@ -10,7 +10,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
+@Tag(name = ApiDocs.AFISHA)
 @RestController
 @RequestMapping("/api/tags")
 @RequiredArgsConstructor
@@ -26,6 +30,8 @@ public class TagController {
      *
      * GET /api/tags?query=music
      */
+    @Operation(summary = "Поиск тегов",
+            description = "По подстроке `query`; без неё — популярные теги.")
     @GetMapping
     public ResponseEntity<List<TagResponse>> searchTags(
             @RequestParam(required = false) String query
@@ -38,6 +44,8 @@ public class TagController {
      *
      * GET /api/tags/popular
      */
+    @Operation(summary = "Популярные теги",
+            description = "Десять тегов с наибольшим числом событий.")
     @GetMapping("/popular")
     public ResponseEntity<List<TagResponse>> getPopularTags(
             @RequestParam(defaultValue = "10") int limit

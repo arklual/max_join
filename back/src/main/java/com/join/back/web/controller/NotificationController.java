@@ -14,7 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 import org.springdoc.core.annotations.ParameterObject;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
+@Tag(name = ApiDocs.NOTIFICATIONS)
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController extends BaseAuthController {
@@ -26,18 +30,22 @@ public class NotificationController extends BaseAuthController {
         this.notificationService = notificationService;
     }
 
+    @Operation(summary = "Уведомления",
+            description = "Новые совпадения, приглашения, сообщения — то же, что присылает бот.")
     @GetMapping
     public ResponseEntity<Page<NotificationResponse>> getNotifications(@ParameterObject Pageable pageable) {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(notificationService.getNotifications(userId, pageable));
     }
 
+    @Operation(summary = "Число непрочитанных")
     @GetMapping("/unread-count")
     public ResponseEntity<Map<String, Long>> getUnreadCount() {
         Long userId = requireCurrentUserId();
         return ResponseEntity.ok(Map.of("count", notificationService.countUnread(userId)));
     }
 
+    @Operation(summary = "Прочитать все")
     @PostMapping("/read-all")
     public ResponseEntity<Void> markAllRead() {
         Long userId = requireCurrentUserId();
@@ -45,6 +53,7 @@ public class NotificationController extends BaseAuthController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(summary = "Отметить уведомление прочитанным")
     @PostMapping("/{id}/read")
     public ResponseEntity<Void> markRead(@PathVariable Long id) {
         Long userId = requireCurrentUserId();

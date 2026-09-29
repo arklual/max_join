@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.join.back.config.ApiDocs;
 
 /**
  * Public read-only configuration that the client app needs at boot time —
@@ -18,6 +21,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirements;
  * deep links for QR codes and friend-group invites.
  */
 @SecurityRequirements
+@Tag(name = ApiDocs.DICTIONARIES)
 @RestController
 @RequestMapping("/api/config")
 @RequiredArgsConstructor
@@ -27,6 +31,8 @@ public class ConfigController {
     private final TelegramBotInfoService telegramBotInfoService;
     private final com.join.back.service.CityScope cityScope;
 
+    @Operation(summary = "Настройки клиента",
+            description = "Имя бота MAX — для ссылок `max.ru/<бот>?startapp=…` и QR-кодов приглашений.")
     @GetMapping
     public ResponseEntity<Map<String, Object>> getConfig() {
         Map<String, Object> body = new HashMap<>();
