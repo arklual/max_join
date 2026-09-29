@@ -1,7 +1,7 @@
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 COPY . .
 ARG VITE_ADMIN_API_URL=/api/admin
 ENV VITE_ADMIN_API_URL=${VITE_ADMIN_API_URL}
