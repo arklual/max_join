@@ -91,8 +91,8 @@ public class MatchService {
             notificationService.createMatchNotification(otherUser.getId(), savedMatch.getId(), currentUserName, eventTitle);
 
             // Уведомления от бота в мессенджеры пользователей (MAX / Telegram)
-            messengerNotificationService.sendMatchNotification(currentUser, otherUserName, eventTitle, savedMatch.getId());
-            messengerNotificationService.sendMatchNotification(otherUser, currentUserName, eventTitle, savedMatch.getId());
+            messengerNotificationService.sendMatchNotification(currentUser, otherUser.getId(), otherUserName, eventTitle, savedMatch.getId());
+            messengerNotificationService.sendMatchNotification(otherUser, userId, currentUserName, eventTitle, savedMatch.getId());
         }
 
         return newMatches;

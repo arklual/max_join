@@ -5,6 +5,7 @@
  *   gchat_<id>  → group chat
  *   event_<id>  → event page (shared events, event reminders)
  *   group_<id>  → invitation into an event group
+ *   profile_<id> → a found companion's profile, with "пойдём вместе?" right there
  *   matches     → found companions and "пойдём вместе?" invitations (chats list)
  *   pushkin     → afisha filtered to Pushkin card events
  *
@@ -16,6 +17,7 @@ export const START_PARAM = {
   groupChat: 'gchat_',
   event: 'event_',
   group: 'group_',
+  profile: 'profile_',
   pushkin: 'pushkin',
   matches: 'matches',
 } as const;
@@ -71,6 +73,8 @@ export function routeForStartParam(raw: string | null | undefined): string | nul
   if (id) return `/events/${id}`;
   id = idAfter(value, START_PARAM.group);
   if (id) return `/groups/${id}`;
+  id = idAfter(value, START_PARAM.profile);
+  if (id) return `/profile/${id}`;
   if (value === START_PARAM.matches) return '/chats';
   if (value === START_PARAM.pushkin) {
     try {

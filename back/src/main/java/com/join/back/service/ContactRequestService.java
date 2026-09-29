@@ -101,7 +101,7 @@ public class ContactRequestService {
             match.setRequestedAt(LocalDateTime.now());
             matchRepository.save(match);
             notify(() -> messengerNotificationService.sendContactRequest(
-                    user(companionId), nameOf(user(userId)), eventTitle(match), match.getId()));
+                    user(companionId), userId, nameOf(user(userId)), eventTitle(match), match.getId()));
         }
         return response(match, userId);
     }

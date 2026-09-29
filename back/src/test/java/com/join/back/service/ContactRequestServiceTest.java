@@ -71,7 +71,7 @@ class ContactRequestServiceTest {
         MatchResponse requested = service.request(9L, 1L);
         assertEquals("REQUESTED", requested.status());
         assertTrue(requested.requestedByMe());
-        verify(messengerNotificationService).sendContactRequest(boris, "Аня", "Щелкунчик", 9L);
+        verify(messengerNotificationService).sendContactRequest(boris, 1L, "Аня", "Щелкунчик", 9L);
         verify(chatService, never()).createChat(anyLong(), anyLong(), anyLong(), anyLong());
 
         MatchResponse accepted = service.accept(9L, 2L);

@@ -48,4 +48,9 @@ public final class DeepLinks {
     public static String event(Long eventId) {
         return eventId == null ? null : "event_" + eventId;
     }
+
+    /** Someone's profile — with "пойдём вместе?" right there if you are matched. */
+    public static String profile(Long userId) {
+        return userId == null ? MATCHES : "profile_" + userId;
+    }
 }

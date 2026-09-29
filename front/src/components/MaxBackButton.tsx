@@ -10,9 +10,9 @@ function parentOf(pathname: string): string {
   if (pathname.startsWith('/chats/')) return '/chats';
   if (pathname.startsWith('/group-chats/') || pathname.startsWith('/groups/')) return '/groups';
   if (pathname.startsWith('/friend-groups')) return '/groups';
-  if (pathname.startsWith('/profile/') || pathname === '/search-preferences' || pathname === '/support') {
-    return '/profile';
-  }
+  // Someone's profile opened from a bot message: back to found companions, as its own back arrow does.
+  if (pathname.startsWith('/profile/')) return '/chats';
+  if (pathname === '/search-preferences' || pathname === '/support') return '/profile';
   return '/afisha';
 }
 

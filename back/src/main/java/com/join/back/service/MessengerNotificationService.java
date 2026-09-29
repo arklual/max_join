@@ -15,15 +15,15 @@ public class MessengerNotificationService {
     private final MaxNotificationService maxNotificationService;
     private final TelegramNotificationService telegramNotificationService;
 
-    public void sendMatchNotification(User user, String companionName, String eventTitle, Long matchId) {
+    public void sendMatchNotification(User user, Long companionId, String companionName, String eventTitle, Long matchId) {
         if (user == null) return;
-        if (user.getMaxId() != null) maxNotificationService.sendMatchNotification(user.getMaxId(), companionName, eventTitle, matchId);
+        if (user.getMaxId() != null) maxNotificationService.sendMatchNotification(user.getMaxId(), companionId, companionName, eventTitle, matchId);
         if (user.getTelegramId() != null) telegramNotificationService.sendMatchNotification(user.getTelegramId(), companionName, eventTitle, matchId);
     }
 
-    public void sendContactRequest(User user, String requesterName, String eventTitle, Long matchId) {
+    public void sendContactRequest(User user, Long requesterId, String requesterName, String eventTitle, Long matchId) {
         if (user == null) return;
-        if (user.getMaxId() != null) maxNotificationService.sendContactRequest(user.getMaxId(), requesterName, eventTitle, matchId);
+        if (user.getMaxId() != null) maxNotificationService.sendContactRequest(user.getMaxId(), requesterId, requesterName, eventTitle, matchId);
         if (user.getTelegramId() != null) telegramNotificationService.sendContactRequest(user.getTelegramId(), requesterName, eventTitle, matchId);
     }
 

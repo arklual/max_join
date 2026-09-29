@@ -31,7 +31,7 @@ public class MaxNotificationService {
      * @param chatId        id созданного чата — кнопка откроет его
      */
     /** A companion found — nobody can write yet: invite to go together right from the bot. */
-    public void sendMatchNotification(Long maxId, String companionName, String eventTitle, Long matchId) {
+    public void sendMatchNotification(Long maxId, Long companionId, String companionName, String eventTitle, Long matchId) {
         String text = String.format(
                 """
                 🎉 Нашлась компания!
@@ -44,17 +44,17 @@ public class MaxNotificationService {
         );
         sendKeyboard(maxId, text, List.of(
                 List.of(MaxBotApiClient.callbackButton("🤝 Позвать пойти вместе", DeepLinks.invite(matchId))),
-                List.of(MaxBotApiClient.openAppButton("👤 Посмотреть профиль", maxBotInfoService.getUsername(), DeepLinks.MATCHES))));
+                List.of(MaxBotApiClient.openAppButton("👤 Посмотреть профиль", maxBotInfoService.getUsername(), DeepLinks.profile(companionId)))));
     }
 
     /** "Пойдём вместе?" — answered with one tap. */
-    public void sendContactRequest(Long maxId, String requesterName, String eventTitle, Long matchId) {
+    public void sendContactRequest(Long maxId, Long requesterId, String requesterName, String eventTitle, Long matchId) {
         String text = String.format("🤝 <b>%s</b> зовёт вас пойти на «%s» вместе.",
                 escapeHtml(requesterName), escapeHtml(eventTitle));
         sendKeyboard(maxId, text, List.of(
                 List.of(MaxBotApiClient.callbackButton("✅ Пойдём", DeepLinks.acceptContact(matchId)),
                         MaxBotApiClient.callbackButton("Не в этот раз", DeepLinks.declineContact(matchId))),
-                List.of(MaxBotApiClient.openAppButton("👤 Посмотреть профиль", maxBotInfoService.getUsername(), DeepLinks.MATCHES))));
+                List.of(MaxBotApiClient.openAppButton("👤 Посмотреть профиль", maxBotInfoService.getUsername(), DeepLinks.profile(requesterId)))));
     }
 
     /** The invitation accepted — the chat is open. */
