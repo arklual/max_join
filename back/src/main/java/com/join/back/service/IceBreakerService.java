@@ -178,14 +178,11 @@ public class IceBreakerService {
         sb.append("Сгенерируй ").append(properties.getSuggestionsCount())
                 .append(" персонализированных icebreaker-сообщений на русском языке для группового чата.\n\n");
 
+        // Only interests and the event go to the external LLM: no names, ages, universities or bios.
         sb.append("Участники группы (").append(members.size()).append(" чел.):\n");
         for (int i = 0; i < members.size(); i++) {
-            User member = members.get(i);
-            sb.append("- ");
-            if (member.getFirstName() != null) sb.append(member.getFirstName());
-            if (member.getAge() != null) sb.append(", ").append(member.getAge()).append(" лет");
-            if (member.getUniversity() != null) sb.append(", ").append(member.getUniversity().getName());
-            appendInterests(sb, member.getInterests());
+            sb.append("- Участник ").append(i + 1);
+            appendInterests(sb, members.get(i).getInterests());
             sb.append("\n");
         }
 
@@ -318,22 +315,15 @@ public class IceBreakerService {
         sb.append("Сгенерируй ").append(properties.getSuggestionsCount())
                 .append(" персонализированных icebreaker-сообщений на русском языке.\n\n");
 
+        // Only interests and the event go to the external LLM: no names, ages, universities or bios.
         if (currentUser != null) {
-            sb.append("Пользователь 1 (отправитель): ");
-            if (currentUser.getFirstName() != null) sb.append(currentUser.getFirstName());
-            if (currentUser.getAge() != null) sb.append(", ").append(currentUser.getAge()).append(" лет");
-            if (currentUser.getUniversity() != null) sb.append(", ").append(currentUser.getUniversity().getName());
-            if (currentUser.getBio() != null) sb.append(". Bio: ").append(currentUser.getBio());
+            sb.append("Пользователь 1 (отправитель)");
             appendInterests(sb, currentUser.getInterests());
             sb.append("\n");
         }
 
         if (companion != null) {
-            sb.append("Пользователь 2 (получатель): ");
-            if (companion.getFirstName() != null) sb.append(companion.getFirstName());
-            if (companion.getAge() != null) sb.append(", ").append(companion.getAge()).append(" лет");
-            if (companion.getUniversity() != null) sb.append(", ").append(companion.getUniversity().getName());
-            if (companion.getBio() != null) sb.append(". Bio: ").append(companion.getBio());
+            sb.append("Пользователь 2 (получатель)");
             appendInterests(sb, companion.getInterests());
             sb.append("\n");
         }
@@ -352,7 +342,7 @@ public class IceBreakerService {
         appendEventToPrompt(sb, event);
 
         sb.append("\n\nТребования:\n");
-        sb.append("- Обращайся к получателю по имени (на «ты»)\n");
+        sb.append("- Обращайся к получателю на «ты», без имени\n");
         sb.append("- Упоминай мероприятие или общие интересы\n");
         sb.append("- Каждое сообщение — 1-2 предложения, дружелюбно и непринуждённо\n");
         sb.append("- Заканчивай вопросом для продолжения диалога\n");
